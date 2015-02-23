@@ -3,6 +3,7 @@ package com.temportalist.scanner.common;
 import cofh.api.energy.EnergyStorage;
 import cofh.api.energy.IEnergyHandler;
 import cofh.api.energy.IEnergyStorage;
+import cofh.api.tileentity.IAugmentable;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.entity.player.EntityPlayer;
@@ -23,11 +24,13 @@ import thaumcraft.api.aspects.AspectList;
 /**
  * @author TheTemportalist
  */
-public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergyHandler {
+public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergyHandler,
+		IAugmentable {
 
 	// todo config max
 	protected EnergyStorage energyStorage = new EnergyStorage(8000);
 	ItemStack[] stacks = new ItemStack[1];
+	ItemStack[] augments = new ItemStack[1];
 	AspectList heldAspects = new AspectList();
 	int timeUntilNextDecompose = -1;
 
@@ -229,6 +232,21 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 	@Override
 	public int extractEnergy(ForgeDirection from, int maxExtract, boolean simulate) {
 		return 0;//this.energyStorage.extractEnergy(maxExtract, simulate);
+	}
+
+	@Override
+	public void installAugments() {
+		// todo
+	}
+
+	@Override
+	public ItemStack[] getAugmentSlots() {
+		return this.augments;
+	}
+
+	@Override
+	public boolean[] getAugmentStatus() {
+		return new boolean[0]; // todo
 	}
 
 	@Override

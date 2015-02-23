@@ -25,7 +25,7 @@ public class GuiDecomposer extends GuiBase {
 		this.addElement(new ElementEnergyStored(
 				this, 0, 0, this.container().tile.getEnergyStorage())
 		);
-		this.addTab(new TabAugment(this, this.container().tile));
+		this.addTab(new TabAugment(this, this.container()));
 
 	}
 }
