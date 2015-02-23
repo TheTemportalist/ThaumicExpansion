@@ -36,4 +36,18 @@ public enum EnumDecomposerSide {
 		return this.icons[side > 1 ? 2 : side];
 	}
 
+	public EnumDecomposerSide next() {
+		int i = this.ordinal() + 1;
+		if (i >= EnumDecomposerSide.values().length)
+			i = 0;
+		return EnumDecomposerSide.values()[i];
+	}
+
+	public EnumDecomposerSide last() {
+		int i = this.ordinal() - 1;
+		if (i < 0)
+			i = EnumDecomposerSide.values().length - 1;
+		return EnumDecomposerSide.values()[i];
+	}
+
 }

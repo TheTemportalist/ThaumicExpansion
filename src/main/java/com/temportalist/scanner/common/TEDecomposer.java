@@ -4,9 +4,15 @@ import cofh.api.energy.EnergyStorage;
 import cofh.api.energy.IEnergyHandler;
 import cofh.api.energy.IEnergyStorage;
 import cofh.api.tileentity.IAugmentable;
+import cofh.api.tileentity.IReconfigurableFacing;
+import cofh.api.tileentity.IReconfigurableSides;
+import cofh.api.tileentity.ISidedTexture;
+import cofh.core.network.PacketHandler;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.inventory.Container;
+import net.minecraft.inventory.ICrafting;
 import net.minecraft.inventory.ISidedInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -21,18 +27,22 @@ import thaumcraft.api.ThaumcraftApiHelper;
 import thaumcraft.api.aspects.Aspect;
 import thaumcraft.api.aspects.AspectList;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * @author TheTemportalist
  */
 public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergyHandler,
-		IAugmentable {
+		IAugmentable, IReconfigurableFacing, IReconfigurableSides, ISidedTexture {
 
 	// todo config max
 	protected EnergyStorage energyStorage = new EnergyStorage(8000);
-	ItemStack[] stacks = new ItemStack[1];
-	ItemStack[] augments = new ItemStack[1];
-	AspectList heldAspects = new AspectList();
-	int timeUntilNextDecompose = -1;
+	private ItemStack[] stacks = new ItemStack[1];
+	private ItemStack[] augments = new ItemStack[1];
+	private List<String> hasAugments = new ArrayList<String>();
+	private AspectList heldAspects = new AspectList();
+	private int timeUntilNextDecompose = -1;
 
 	EnumDecomposerSide[] sideTypes = new EnumDecomposerSide[6];
 
@@ -95,14 +105,18 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 	public IIcon[] getIcons(ForgeDirection dir) {
 		int side = dir.ordinal();
 		IIcon[] icons = new IIcon[2];
-		icons[0] = this.getBlockType().getIcon(side, this.getBlockMetadata());
-		if (dir.ordinal() != ((BlockDecomposer) this.getBlockType()).getDirection(
+		icons[0] = this.getBlock().getIcon(side, this.getBlockMetadata());
+		if (dir.ordinal() != ((BlockDecomposer) this.getBlock()).getDirection(
 				this.getBlockMetadata()
 		).ordinal())
 			icons[1] = this.sideTypes[side] != null ?
 					this.sideTypes[side].getIcon(side) :
 					EnumDecomposerSide.EMPTY.getIcon(side);
 		return icons;
+	}
+
+	public BlockDecomposer getBlock() {
+		return (BlockDecomposer) this.getBlockType();
 	}
 
 	// ~~~~~~~~~~~~~~~ Below is background functionality, Tinker at your own risk ~~~~~~~~~~~~~~~
@@ -235,18 +249,136 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 	}
 
 	@Override
-	public void installAugments() {
-		// todo
-	}
-
-	@Override
 	public ItemStack[] getAugmentSlots() {
 		return this.augments;
 	}
 
+	/**
+	 * Ran whenever augments change
+	 */
+	@Override
+	public void installAugments() {
+		this.hasAugments.clear();
+		for (int slot = 0; slot < this.augments.length; slot++) {
+			if (this.augments[slot] != null) {
+				this.hasAugments.add(this.augments[slot].getItem().getUnlocalizedName());
+			}
+		}
+		this.markDirty();
+	}
+
 	@Override
 	public boolean[] getAugmentStatus() {
-		return new boolean[0]; // todo
+		return new boolean[0];
+	}
+
+	/**
+	 * @return the direction the block is facing
+	 */
+	@Override
+	public int getFacing() {
+		return this.getBlock().getRotation(this.getBlockMetadata());
+	}
+
+	/**
+	 * @return whether this block can face up/down
+	 */
+	@Override
+	public boolean allowYAxisFacing() {
+		return false;
+	}
+
+	/*
+	// todo to origin
+	private ForgeDirection[] clockwise = new ForgeDirection[] {
+			ForgeDirection.NORTH,
+			ForgeDirection.EAST,
+			ForgeDirection.SOUTH,
+			ForgeDirection.WEST
+	};
+	*/
+
+	/**
+	 * Rotate clockwise
+	 *
+	 * @return
+	 */
+	@Override
+	public boolean rotateBlock() { // todo is this broken?
+		return this.setFacing(
+				this.getBlock().getDirection(
+						this.getBlockMetadata()
+				).getRotation(ForgeDirection.UP).ordinal()
+		);
+	}
+
+	@Override
+	public boolean setFacing(int i) {
+		this.getBlock().setTierAndDir(
+				this.getWorldObj(), this.xCoord, this.yCoord, this.zCoord,
+				this.getBlock().getTier(this.getBlockMetadata()),
+				ForgeDirection.getOrientation(i)
+		);
+		this.markDirty();
+		return true;
+	}
+
+	private boolean isSideFront(int side) {
+		return side == this.getBlock().getRotation(this.getBlockMetadata());
+	}
+
+	@Override
+	public boolean decrSide(int side) {
+		return this.setSide(side, this.sideTypes[side].last().ordinal());
+	}
+
+	@Override
+	public boolean incrSide(int side) {
+		return this.setSide(side, this.sideTypes[side].next().ordinal());
+	}
+
+	@Override
+	public boolean setSide(int side, int index) {
+		if (!this.isSideFront(side)) {
+			this.sideTypes[side] = EnumDecomposerSide.values()[index];
+			PacketHandler.sendToServer(new PacketTileSync(this));
+			PacketHandler.sendToAll(new PacketTileSync(this));
+			//this.markDirty();
+			return true;
+		}
+		return false;
+	}
+
+	@Override
+	public boolean resetSides() {
+		for (int side = 0; side < this.sideTypes.length; side++)
+			this.sideTypes[side] = EnumDecomposerSide.EMPTY;
+		this.markDirty();
+		return true;
+	}
+
+	@Override
+	public int getNumConfig(int side) {
+		return !this.isSideFront(side) ? EnumDecomposerSide.values().length : 0;
+	}
+
+	@Override
+	public IIcon getTexture(int side, int type) {
+		return !this.isSideFront(side) ?
+				EnumDecomposerSide.values()[type].getIcon(side) :
+				this.getBlock().getIcon(side, this.getBlockMetadata());
+	}
+
+	public void sendGuiNetworkData(Container container, ICrafting player) {
+	}
+
+	public void receiveGuiNetworkData(int i, int j) {
+	}
+
+	@Override
+	public void markDirty() {
+		super.markDirty();
+		this.getWorldObj().markBlockForUpdate(this.xCoord, this.yCoord, this.zCoord);
 	}
 
 	@Override
@@ -267,6 +399,8 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 	public void writeToNBT(NBTTagCompound tagCom) {
 		super.writeToNBT(tagCom);
 
+		// todo write auto thing in TEWrapper for Origin inventories
+		// todo to automate the reading/writing of arrays
 		NBTTagList stackTags = new NBTTagList();
 		for (int slot = 0; slot < this.getSizeInventory(); slot++) {
 			if (this.stacks[slot] != null) {
@@ -278,6 +412,17 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 		}
 		tagCom.setTag("stackTags", stackTags);
 
+		NBTTagList augmentTags = new NBTTagList();
+		for (int slot = 0; slot < this.augments.length; slot++) {
+			if (this.augments[slot] != null) {
+				NBTTagCompound augmentTag = new NBTTagCompound();
+				this.augments[slot].writeToNBT(augmentTag);
+				augmentTag.setInteger("slot", slot);
+				augmentTags.appendTag(augmentTag);
+			}
+		}
+		tagCom.setTag("augmentTags", augmentTags);
+
 		this.energyStorage.writeToNBT(tagCom);
 
 		tagCom.setInteger("timeToDecompose", this.timeUntilNextDecompose);
@@ -285,6 +430,16 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 		for (int side = 0; side < this.sideTypes.length; side++)
 			if (this.sideTypes[side] != null)
 				tagCom.setInteger("side" + side, this.sideTypes[side].ordinal());
+
+		NBTTagList augmentList = new NBTTagList();
+		for (String augment : this.hasAugments) {
+			NBTTagCompound augmentTag = new NBTTagCompound();
+			augmentTag.setString("name", augment);
+			augmentList.appendTag(augmentTag);
+		}
+		tagCom.setTag("augmentList", augmentList);
+
+		this.heldAspects.writeToNBT(tagCom, "heldAspects");
 
 	}
 
@@ -299,12 +454,27 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 			this.stacks[slot] = ItemStack.loadItemStackFromNBT(stackTag);
 		}
 
+		NBTTagList augmentTags = tagCom.getTagList("augmentTags", 10);
+		for (int i = 0; i < augmentTags.tagCount(); i++) {
+			NBTTagCompound augmentTag = augmentTags.getCompoundTagAt(i);
+			int slot = augmentTag.getInteger("slot");
+			this.augments[slot] = ItemStack.loadItemStackFromNBT(augmentTag);
+		}
+
 		this.energyStorage.readFromNBT(tagCom);
 
 		this.timeUntilNextDecompose = tagCom.getInteger("timeToDecompose");
 
 		for (int side = 0; side < 6; side++)
 			this.sideTypes[side] = EnumDecomposerSide.values()[tagCom.getInteger("side" + side)];
+
+		this.hasAugments.clear();
+		NBTTagList augmentList = tagCom.getTagList("augmentList", 10);
+		for (int i = 0; i < augmentList.tagCount(); i++) {
+			this.hasAugments.add(augmentList.getCompoundTagAt(i).getString("name"));
+		}
+
+		this.heldAspects.readFromNBT(tagCom, "heldAspects");
 
 	}
 

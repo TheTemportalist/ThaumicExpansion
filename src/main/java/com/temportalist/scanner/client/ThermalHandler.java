@@ -1,5 +1,7 @@
 package com.temportalist.scanner.client;
 
+import com.temportalist.scanner.common.BlockDecomposer;
+import com.temportalist.scanner.common.EnumDecomposerSide;
 import com.temportalist.scanner.common.TEDecomposer;
 import cpw.mods.fml.client.registry.ISimpleBlockRenderingHandler;
 import cpw.mods.fml.common.FMLLog;
@@ -26,33 +28,34 @@ public class ThermalHandler implements ISimpleBlockRenderingHandler {
 		return true;
 	}
 
-	private void renderFace(RenderBlocks renderer, ForgeDirection dir, Block block, int x, int y, int z, IIcon icon) {
+	private void renderFace(RenderBlocks renderer, ForgeDirection dir, Block block, int x, int y,
+			int z, IIcon icon) {
 		if (icon == null)
 			FMLLog.info("[Scanner] Error null icon");
 		else
-		switch (dir) {
-			case DOWN:
-				renderer.renderFaceYNeg(block, x, y, z, icon);
-				break;
-			case UP:
-				renderer.renderFaceYPos(block, x, y, z, icon);
-				break;
-			case NORTH:
-				renderer.renderFaceZNeg(block, x, y, z, icon);
-				break;
-			case EAST:
-				renderer.renderFaceXPos(block, x, y, z, icon);
-				break;
-			case SOUTH:
-				renderer.renderFaceZPos(block, x, y, z, icon);
-				break;
-			case WEST:
-				renderer.renderFaceXNeg(block, x, y, z, icon);
-				break;
-			default:
-				FMLLog.info("Not rendering for side " + dir);
-				break;
-		}
+			switch (dir) {
+				case DOWN:
+					renderer.renderFaceYNeg(block, x, y, z, icon);
+					break;
+				case UP:
+					renderer.renderFaceYPos(block, x, y, z, icon);
+					break;
+				case NORTH:
+					renderer.renderFaceZNeg(block, x, y, z, icon);
+					break;
+				case EAST:
+					renderer.renderFaceXPos(block, x, y, z, icon);
+					break;
+				case SOUTH:
+					renderer.renderFaceZPos(block, x, y, z, icon);
+					break;
+				case WEST:
+					renderer.renderFaceXNeg(block, x, y, z, icon);
+					break;
+				default:
+					FMLLog.info("Not rendering for side " + dir);
+					break;
+			}
 	}
 
 	@Override
@@ -63,11 +66,20 @@ public class ThermalHandler implements ISimpleBlockRenderingHandler {
 		block.setBlockBoundsForItemRender();
 		GL11.glTranslatef(-0.5f, -0.5f, -0.5f);
 
+		ForgeDirection faceDir = ForgeDirection.EAST;
+		metadata = ((BlockDecomposer) block).getMetadata(
+				((BlockDecomposer) block).getTier(metadata),
+				faceDir
+		);
 		for (int i = 0; i < ForgeDirection.VALID_DIRECTIONS.length; i++) {
 			ForgeDirection dir = ForgeDirection.VALID_DIRECTIONS[i];
 			tess.startDrawingQuads();
 			tess.setNormal(dir.offsetX, dir.offsetY, dir.offsetZ);
 			this.renderFace(renderer, dir, block, 0, 0, 0, block.getIcon(i, metadata));
+			if (dir != faceDir)
+				this.renderFace(renderer, dir, block, 0, 0, 0,
+						EnumDecomposerSide.EMPTY.getIcon(dir.ordinal())
+				);
 			tess.draw();
 		}
 
@@ -143,7 +155,9 @@ public class ThermalHandler implements ISimpleBlockRenderingHandler {
 				for (int iconIndex = 0; iconIndex < icons.length; iconIndex++)
 					if (icons[iconIndex] != null)
 						this.renderFace(renderer, dir, block, x, y, z, icons[iconIndex]);
-					else FMLLog.info("ERROR ICON INDEX " + iconIndex + " ON SIDE " + dir.ordinal() + " is NULL");
+					else
+						FMLLog.info("ERROR ICON INDEX " + iconIndex + " ON SIDE " + dir.ordinal()
+								+ " is NULL");
 				didRender = true;
 			}
 		}

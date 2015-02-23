@@ -84,9 +84,12 @@ public class BlockDecomposer extends Block implements ITileEntityProvider {
 	}
 
 	public void setTierAndDir(World world, int x, int y, int z, int tier, ForgeDirection dir) {
-		int rotation = dir.ordinal() - 2;
-		world.setBlockMetadataWithNotify(x, y, z, tier * 4 + rotation, 3);
-		world.markBlockForUpdate(x, y, z);
+		world.setBlockMetadataWithNotify(x, y, z, this.getMetadata(tier, dir), 3);
+		//world.markBlockForUpdate(x, y, z);
+	}
+
+	public int getMetadata(int tier, ForgeDirection dir) {
+		return tier * 4 + (dir.ordinal() - 2);
 	}
 
 	public int getTier(int meta) {
@@ -120,7 +123,7 @@ public class BlockDecomposer extends Block implements ITileEntityProvider {
 	public void onBlockPlacedBy(
 			World world, int x, int y, int z, EntityLivingBase placer, ItemStack stack) {
 		int facing =
-				MathHelper.floor_double((double) ((placer.rotationYaw * 4F) / 360F) + 0.5D) & 3;
+				MathHelper.floor_double(((placer.rotationYaw * 4F) / 360F) + 0.5D) & 3;
 		this.setTierAndDir(world, x, y, z,
 				this.getTier(stack.getItemDamage()), ForgeDirection.getOrientation(facing)
 		);
@@ -128,7 +131,9 @@ public class BlockDecomposer extends Block implements ITileEntityProvider {
 
 	@Override
 	protected ItemStack createStackedBlock(int meta) {
-		return new ItemStack(Item.getItemFromBlock(this), 1, meta);
+		return new ItemStack(Item.getItemFromBlock(this), 1, this.getMetadata(
+				this.getTier(meta), ForgeDirection.EAST
+		));
 	}
 
 	@Override

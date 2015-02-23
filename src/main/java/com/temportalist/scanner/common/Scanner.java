@@ -40,18 +40,19 @@ public class Scanner {
 
 		Scanner.proxy.register();
 		NetworkRegistry.INSTANCE.registerGuiHandler(Scanner.instance, Scanner.proxy);
+		PacketTileSync.init();
 
 		this.decomposer = new BlockDecomposer(Material.rock, Scanner.MODID, "decomposer");
 
 		// todo use config
-		this.decompositionStats.put(1, new int[] {05, 10});
-		this.decompositionStats.put(2, new int[] {10, 15});
-		this.decompositionStats.put(3, new int[] {15, 20});
+		this.decompositionStats.put(1, new int[] { 05, 10 });
+		this.decompositionStats.put(2, new int[] { 10, 15 });
+		this.decompositionStats.put(3, new int[] { 15, 20 });
 
 	}
 
 	@Mod.EventHandler
-	public void postInit (FMLPostInitializationEvent event) {
+	public void postInit(FMLPostInitializationEvent event) {
 
 		this.aspectTiers.put(Aspect.AIR, 1);
 		this.aspectTiers.put(Aspect.EARTH, 1);

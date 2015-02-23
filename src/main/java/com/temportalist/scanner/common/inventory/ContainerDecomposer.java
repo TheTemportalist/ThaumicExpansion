@@ -9,6 +9,7 @@ import com.temportalist.scanner.common.TEDecomposer;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.inventory.Container;
+import net.minecraft.inventory.ICrafting;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
 
@@ -36,13 +37,13 @@ public class ContainerDecomposer extends Container implements IAugmentableContai
 						playerInv,
 						column + row * 9 + 9,
 						8 + column * 18,
-						103 + row * 18 + playerInvHeight
+						84 + row * 18 + playerInvHeight
 				));
 			}
 		}
 		for (int column = 0; column < 9; ++column) {
 			this.addSlotToContainer(new Slot(
-					playerInv, column, 8 + column * 18, 161 + playerInvHeight
+					playerInv, column, 8 + column * 18, 142 + playerInvHeight
 			));
 		}
 
@@ -73,7 +74,20 @@ public class ContainerDecomposer extends Container implements IAugmentableContai
 
 	@Override
 	public Slot[] getAugmentSlots() {
-		return new Slot[0];
+		return this.augments;
+	}
+
+	@Override
+	public void detectAndSendChanges() {
+		super.detectAndSendChanges();
+		for (int i = 0; i < crafters.size(); i++) {
+			this.tile.sendGuiNetworkData(this, (ICrafting) crafters.get(i));
+		}
+	}
+
+	@Override
+	public void updateProgressBar(int i, int j) {
+		this.tile.receiveGuiNetworkData(i, j);
 	}
 
 	@Override
