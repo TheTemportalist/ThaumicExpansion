@@ -24,6 +24,8 @@ import thaumcraft.common.lib.network.PacketHandler;
 import thaumcraft.common.lib.network.playerdata.PacketAspectPool;
 import thaumcraft.common.lib.research.ResearchManager;
 
+import java.util.List;
+
 /**
  * @author TheTemportalist
  */
@@ -122,11 +124,29 @@ public class BlockDecomposer extends Block implements ITileEntityProvider {
 	@Override
 	public void onBlockPlacedBy(
 			World world, int x, int y, int z, EntityLivingBase placer, ItemStack stack) {
-		int facing =
-				MathHelper.floor_double(((placer.rotationYaw * 4F) / 360F) + 0.5D) & 3;
+		int facing = MathHelper.floor_double((placer.rotationYaw * 4F) / 360F + 0.5D) & 3;
+		int convertedFacing;
+		switch (facing) {
+			case 0:
+				convertedFacing = 3;
+				break;
+			case 1:
+				convertedFacing = 4;
+				break;
+			case 2:
+				convertedFacing = 2;
+				break;
+			case 3:
+				convertedFacing = 5;
+				break;
+			default:
+				convertedFacing = 2;
+				break;
+		}
 		this.setTierAndDir(world, x, y, z,
-				this.getTier(stack.getItemDamage()), ForgeDirection.getOrientation(facing)
+				this.getTier(stack.getItemDamage()), ForgeDirection.getOrientation(convertedFacing)
 		);
+		((TEDecomposer) world.getTileEntity(x, y, z)).onPlaced();
 	}
 
 	@Override
@@ -134,6 +154,12 @@ public class BlockDecomposer extends Block implements ITileEntityProvider {
 		return new ItemStack(Item.getItemFromBlock(this), 1, this.getMetadata(
 				this.getTier(meta), ForgeDirection.EAST
 		));
+	}
+
+	@Override
+	public void getSubBlocks(Item item, CreativeTabs tab, List list) {
+		for (int tier = 0; tier < 4; tier++)
+			((List<ItemStack>) list).add(this.createStackedBlock(tier * 4));
 	}
 
 	@Override
@@ -152,9 +178,8 @@ public class BlockDecomposer extends Block implements ITileEntityProvider {
 	@Override
 	public boolean onBlockActivated(World world, int x, int y, int z, EntityPlayer player, int side,
 			float hitX, float hitY, float hitZ) {
-		if (player.getHeldItem() != null) {
-			if (!world.isRemote) {
-			/*
+		/*
+		if (!world.isRemote && player.getHeldItem() != null) {
 			AspectList aspects = ThaumcraftApiHelper.getObjectAspects(player.getHeldItem());
 			Aspect[] aspects1 = aspects.getAspects();
 			for (int i = 0; i < aspects1.length; i++) {
@@ -163,13 +188,11 @@ public class BlockDecomposer extends Block implements ITileEntityProvider {
 				System.out.println(aspect.getName());
 				this.addAspect((EntityPlayerMP) player, aspect, amount);
 			}
-			//*/
-			}
-			player.openGui(Scanner.instance, 0, world, x, y, z);
-
-			return true;
 		}
-		return false;
+		*/
+		player.openGui(Scanner.instance, 0, world, x, y, z);
+
+		return true;
 	}
 
 	private void addAspect(EntityPlayerMP player, Aspect aspect, short amount) {

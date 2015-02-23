@@ -10,11 +10,26 @@ import net.minecraft.util.IIcon;
  */
 public enum EnumDecomposerSide {
 
-	EMPTY("blank"),
+	/*
+		permutations:
+			blank - default side
+			INPUT & OUTPUT - empty
+			INPUT - blue
+			OUTPUT ALL - orange
+			OUTPUT Thaumcraft - purple
+			OUTPUT essentia - green
+			OUTPUT vis - yellow
+			OUTPUT items - red
+	 */
+
+	NONE("default"),
+	IO("io"),
 	INPUT_ITEM("blue"),
-	OUTPUT("red"),
+	OUTPUT("orange"),
+	OUTPUT_ITEM("red"),
+	OUTPUT_THAUM("purple"),
 	OUTPUT_VIS("yellow"),
-	OUTPUT_ESSENTIA("purple");
+	OUTPUT_ESSENTIA("green");
 
 	private final String name;
 	@SideOnly(Side.CLIENT)

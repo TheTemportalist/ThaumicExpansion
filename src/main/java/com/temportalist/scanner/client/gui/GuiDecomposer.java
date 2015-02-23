@@ -3,6 +3,7 @@ package com.temportalist.scanner.client.gui;
 import cofh.core.gui.GuiBaseAdv;
 import cofh.core.gui.element.TabAugment;
 import cofh.core.gui.element.TabConfiguration;
+import cofh.core.gui.element.TabRedstone;
 import cofh.lib.gui.element.ElementEnergyStored;
 import com.temportalist.scanner.common.Scanner;
 import com.temportalist.scanner.common.inventory.ContainerDecomposer;
@@ -34,6 +35,7 @@ public class GuiDecomposer extends GuiBaseAdv {
 		));
 		this.addTab(new TabAugment(this, this.container()));
 		this.addTab(new TabConfiguration(this, this.container().tile));
+		this.addTab(new TabRedstone(this, this.container().tile));
 
 	}
 

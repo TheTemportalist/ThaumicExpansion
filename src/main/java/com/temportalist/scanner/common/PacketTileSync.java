@@ -21,7 +21,6 @@ public class PacketTileSync extends PacketCoFHBase {
 	}
 
 	public PacketTileSync(TileEntity tile) {
-		//ByteBufUtils.writeTag();
 		this.addCoords(tile);
 		NBTTagCompound tagCom = new NBTTagCompound();
 		tile.writeToNBT(tagCom);

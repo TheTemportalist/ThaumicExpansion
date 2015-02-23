@@ -3,11 +3,10 @@ package com.temportalist.scanner.common;
 import cofh.api.energy.EnergyStorage;
 import cofh.api.energy.IEnergyHandler;
 import cofh.api.energy.IEnergyStorage;
-import cofh.api.tileentity.IAugmentable;
-import cofh.api.tileentity.IReconfigurableFacing;
-import cofh.api.tileentity.IReconfigurableSides;
-import cofh.api.tileentity.ISidedTexture;
+import cofh.api.tileentity.*;
 import cofh.core.network.PacketHandler;
+import cofh.lib.util.position.IRotateableTile;
+import cpw.mods.fml.common.FMLLog;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.entity.player.EntityPlayer;
@@ -26,35 +25,43 @@ import net.minecraftforge.common.util.ForgeDirection;
 import thaumcraft.api.ThaumcraftApiHelper;
 import thaumcraft.api.aspects.Aspect;
 import thaumcraft.api.aspects.AspectList;
+import thaumcraft.api.aspects.IAspectContainer;
+import thaumcraft.api.aspects.IEssentiaTransport;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Random;
 
 /**
  * @author TheTemportalist
  */
 public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergyHandler,
-		IAugmentable, IReconfigurableFacing, IReconfigurableSides, ISidedTexture {
+		IAugmentable, IRotateableTile, IReconfigurableFacing, IReconfigurableSides, ISidedTexture,
+		IRedstoneControl, IAspectContainer, IEssentiaTransport {
 
-	// todo config max
-	protected EnergyStorage energyStorage = new EnergyStorage(8000);
-	private ItemStack[] stacks = new ItemStack[1];
-	private ItemStack[] augments = new ItemStack[1];
-	private List<String> hasAugments = new ArrayList<String>();
-	private AspectList heldAspects = new AspectList();
+	protected EnergyStorage energyStorage = new EnergyStorage(Scanner.maxEnergyStorage);
+	private ItemStack[] stacks = new ItemStack[2];
+	private ItemStack[] augments = new ItemStack[0];
+	private List<EnumDecomposerAugment> augmentList = new ArrayList<EnumDecomposerAugment>();
+	private AspectList aspects = new AspectList();
 	private int timeUntilNextDecompose = -1;
 
 	EnumDecomposerSide[] sideTypes = new EnumDecomposerSide[6];
+	ControlMode currentControl = ControlMode.DISABLED;
+	boolean powered = false;
 
 	@Override
 	public void updateEntity() {
-		if (this.stacks[0] != null) {
+		if (this.canOperate() && this.stacks[0] != null) {
 			// Int energy, AspectList filteredList, Int time
 			Object[] variables = this.calculateAndFilter(this.stacks[0]);
-			int energyRequired = (Integer) variables[0];
+			int energyRequired = this.getEnergyRequired((Integer) variables[0]);
 			if (this.energyStorage.getEnergyStored() <= energyRequired) {
 				if (this.timeUntilNextDecompose < 0) {
-					this.timeUntilNextDecompose = (Integer) variables[2] * 20; // times 20 for ticks
+					this.timeUntilNextDecompose = this.getAdjustedTime(
+							(Integer) variables[2] * 20
+					); // times 20 for ticks
 				}
 				else if (this.timeUntilNextDecompose > 0) {
 					this.timeUntilNextDecompose -= 1;
@@ -64,16 +71,24 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 					AspectList aspectList = (AspectList) variables[1];
 					Aspect[] aspects = aspectList.getAspects();
 					for (int i = 0; i < aspects.length; i++) {
-						this.heldAspects.add(aspects[i], aspectList.getAmount(aspects[i]));
+						this.aspects.add(aspects[i], aspectList.getAmount(aspects[i]));
 					}
 					// decrement the current stack
-					this.decrStackSize(0, 1);
+					if (Scanner.consumeItems &&
+							!this.augmentList.contains(EnumDecomposerAugment.ITEM_KEEPER))
+						this.decrStackSize(0, 1);
 					// decrease the energy
 					this.energyStorage.extractEnergy(energyRequired, false);
 					this.timeUntilNextDecompose = -1;
 				}
 			}
 		}
+	}
+
+	public boolean canOperate() {
+		return this.getControl() == ControlMode.DISABLED ||
+				(this.getControl() == ControlMode.LOW && !this.isPowered()) ||
+				(this.getControl() == ControlMode.HIGH && this.isPowered());
 	}
 
 	private Object[] calculateAndFilter(ItemStack stack) {
@@ -96,9 +111,58 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 		return new Object[] { energy, aspectList, time };
 	}
 
-	// todo
 	private AspectList filterAspects(AspectList aspectList) {
-		return aspectList;
+		AspectList resultList = new AspectList();
+		Random rand = this.getWorldObj().rand;
+		int machineTier = this.getBlock().getTier(this.getBlockMetadata());
+		Aspect[] aspects = aspectList.getAspectsSorted();
+		double genericChance = this.getMachineChance(machineTier);
+		for (Aspect aspect : aspects) {
+			int amount = aspectList.getAmount(aspect);
+			int complexity = Scanner.aspectTiers.containsKey(aspect) ?
+					Scanner.aspectTiers.get(aspect) :
+					3;
+			double complexityChance = this.getComplexityChance(machineTier, complexity);
+			int resultAmount = 0;
+			for (int each = 1; each <= amount; each++) {
+				if (rand.nextDouble() < complexityChance && rand.nextDouble() < genericChance) {
+					resultAmount++;
+				}
+			}
+			if (resultAmount > 0)
+				resultList.add(aspect, resultAmount);
+		}
+		return resultList;
+	}
+
+	private double getComplexityChance(int machineTier, int aspectComplexity) {
+		double base = Scanner.complexityTierChance[machineTier][aspectComplexity - 1];
+		for (EnumDecomposerAugment augment : this.augmentList) {
+			base *= augment.getOutputMultipliers()[aspectComplexity];
+		}
+		return base;
+	}
+
+	private double getMachineChance(int machineTier) {
+		double base = Scanner.tieredChance[machineTier];
+		for (EnumDecomposerAugment augment : this.augmentList) {
+			base *= augment.getOutputMultipliers()[1];
+		}
+		return base;
+	}
+
+	private int getAdjustedTime(int baseTimeInTicks) {
+		for (EnumDecomposerAugment augment : this.augmentList) {
+			baseTimeInTicks *= augment.getTimeMultiplier();
+		}
+		return baseTimeInTicks;
+	}
+
+	private int getEnergyRequired(int baseRequirement) {
+		for (EnumDecomposerAugment augment : this.augmentList) {
+			baseRequirement *= augment.getEnergyRequirementMultiplier();
+		}
+		return baseRequirement;
 	}
 
 	@SideOnly(Side.CLIENT)
@@ -111,12 +175,16 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 		).ordinal())
 			icons[1] = this.sideTypes[side] != null ?
 					this.sideTypes[side].getIcon(side) :
-					EnumDecomposerSide.EMPTY.getIcon(side);
+					EnumDecomposerSide.NONE.getIcon(side);
 		return icons;
 	}
 
 	public BlockDecomposer getBlock() {
 		return (BlockDecomposer) this.getBlockType();
+	}
+
+	public void onPlaced() {
+		this.augments = new ItemStack[this.getBlock().getTier(this.getBlockMetadata()) * 3];
 	}
 
 	// ~~~~~~~~~~~~~~~ Below is background functionality, Tinker at your own risk ~~~~~~~~~~~~~~~
@@ -163,8 +231,10 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 
 	@Override
 	public boolean isItemValidForSlot(int slot, ItemStack itemStack) {
-		if (slot >= 0 && slot < this.stacks.length) {
+		if (slot >= 0 && slot < this.stacks.length && itemStack != null) {
 			AspectList list = ThaumcraftApiHelper.getObjectAspects(itemStack);
+			FMLLog.info(itemStack.getDisplayName() + " has " + (list != null ? list.size() : 0)
+					+ " aspects");
 			return list != null && list.size() > 0;
 		}
 		return false;
@@ -189,21 +259,32 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 		return null;
 	}
 
+	private boolean canInput_Item(int side) {
+		return this.sideTypes[side] == EnumDecomposerSide.INPUT_ITEM ||
+				this.sideTypes[side] == EnumDecomposerSide.IO;
+	}
+
+	private boolean canOutput_Item(int side) {
+		return this.sideTypes[side] == EnumDecomposerSide.IO ||
+				this.sideTypes[side] == EnumDecomposerSide.OUTPUT ||
+				this.sideTypes[side] == EnumDecomposerSide.OUTPUT_ITEM;
+	}
+
 	@Override
 	public int[] getAccessibleSlotsFromSide(int side) {
-		return new int[] { 0 };
+		return side == 0 ?
+				new int[] { 1 } :
+				new int[1]; // bottom can only access the capacitor slot
 	}
 
 	@Override
 	public boolean canInsertItem(int slot, ItemStack stack, int side) {
-		return slot >= 0 && slot < this.stacks.length && this.stacks[slot] != null && (
-				this.sideTypes[side] == EnumDecomposerSide.INPUT_ITEM
-		);
+		return slot >= 0 && slot < this.stacks.length && this.canInput_Item(side);
 	}
 
 	@Override
 	public boolean canExtractItem(int slot, ItemStack stack, int side) {
-		return false;
+		return slot >= 0 && slot < this.stacks.length && this.canOutput_Item(side);
 	}
 
 	@Override
@@ -258,10 +339,14 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 	 */
 	@Override
 	public void installAugments() {
-		this.hasAugments.clear();
+		this.augmentList.clear();
 		for (int slot = 0; slot < this.augments.length; slot++) {
 			if (this.augments[slot] != null) {
-				this.hasAugments.add(this.augments[slot].getItem().getUnlocalizedName());
+				EnumDecomposerAugment augmentEnum = EnumDecomposerAugment.getByName(
+						Scanner.getFullName(this.augments[slot])
+				);
+				if (augmentEnum != null)
+					this.augmentList.add(augmentEnum);
 			}
 		}
 		this.markDirty();
@@ -270,6 +355,31 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 	@Override
 	public boolean[] getAugmentStatus() {
 		return new boolean[0];
+	}
+
+	@Override
+	public boolean canRotate() {
+		return true;
+	}
+
+	@Override
+	public boolean canRotate(ForgeDirection dir) {
+		return dir != ForgeDirection.DOWN && dir != ForgeDirection.UP;
+	}
+
+	@Override
+	public void rotate(ForgeDirection dir) {
+		this.rotateBlock();
+	}
+
+	@Override
+	public void rotateDirectlyTo(int i) {
+		this.setFacing(i);
+	}
+
+	@Override
+	public ForgeDirection getDirectionFacing() {
+		return ForgeDirection.getOrientation(this.getFacing());
 	}
 
 	/**
@@ -342,8 +452,7 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 		if (!this.isSideFront(side)) {
 			this.sideTypes[side] = EnumDecomposerSide.values()[index];
 			PacketHandler.sendToServer(new PacketTileSync(this));
-			PacketHandler.sendToAll(new PacketTileSync(this));
-			//this.markDirty();
+			this.markDirty();
 			return true;
 		}
 		return false;
@@ -352,7 +461,7 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 	@Override
 	public boolean resetSides() {
 		for (int side = 0; side < this.sideTypes.length; side++)
-			this.sideTypes[side] = EnumDecomposerSide.EMPTY;
+			this.sideTypes[side] = EnumDecomposerSide.NONE;
 		this.markDirty();
 		return true;
 	}
@@ -363,11 +472,171 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 	}
 
 	@Override
-	public IIcon getTexture(int side, int type) {
+	public IIcon getTexture(int side, int pass) {
 		return !this.isSideFront(side) ?
-				EnumDecomposerSide.values()[type].getIcon(side) :
+				this.sideTypes[side].getIcon(side) :
 				this.getBlock().getIcon(side, this.getBlockMetadata());
 	}
+
+	@Override
+	public void setControl(ControlMode controlMode) {
+		this.currentControl = controlMode;
+		PacketHandler.sendToServer(new PacketTileSync(this));
+		this.markDirty();
+	}
+
+	@Override
+	public ControlMode getControl() {
+		return this.currentControl;
+	}
+
+	@Override
+	public void setPowered(boolean b) {
+		this.powered = b;
+		this.markDirty();
+	}
+
+	@Override
+	public boolean isPowered() {
+		return this.powered;
+	}
+
+	// Thaumcraft things
+
+	@Override
+	public AspectList getAspects() {
+		return this.aspects;
+	}
+
+	@Override
+	public void setAspects(AspectList newList) {
+		this.aspects = newList;
+		this.markDirty();
+	}
+
+	@Override
+	public boolean doesContainerAccept(Aspect aspect) {
+		return this.aspects.aspects.containsKey(aspect);
+	}
+
+	@Override
+	public int addToContainer(Aspect aspect, int amount) {
+		this.aspects.add(aspect, amount);
+		this.markDirty();
+		return amount;
+	}
+
+	@Override
+	public boolean takeFromContainer(Aspect aspect, int amount) {
+		boolean ret = this.aspects.reduce(aspect, amount);
+		this.markDirty();
+		return ret;
+	}
+
+	@Override
+	public boolean takeFromContainer(AspectList aspectList) {
+		AspectList temp = this.aspects.copy();
+		boolean successful = true;
+		for (Map.Entry<Aspect, Integer> entry : aspectList.aspects.entrySet()) {
+			if (!temp.reduce(entry.getKey(), entry.getValue())) {
+				successful = false;
+				break;
+			}
+		}
+		if (successful)
+			this.setAspects(temp);
+		return successful;
+	}
+
+	@Override
+	public boolean doesContainerContainAmount(Aspect aspect, int amount) {
+		return this.containerContains(aspect) == amount;
+	}
+
+	@Override
+	public boolean doesContainerContain(AspectList aspectList) {
+		for (Map.Entry<Aspect, Integer> entry : aspectList.aspects.entrySet()) {
+			if (!this.doesContainerContainAmount(entry.getKey(), entry.getValue()))
+				return false;
+		}
+		return true;
+	}
+
+	@Override
+	public int containerContains(Aspect aspect) {
+		return this.aspects.getAmount(aspect);
+	}
+
+	@Override
+	public boolean isConnectable(ForgeDirection dir) {
+		return this.canOutputTo(dir);
+	}
+
+	@Override
+	public boolean canInputFrom(ForgeDirection dir) {
+		return false;
+	}
+
+	@Override
+	public boolean canOutputTo(ForgeDirection dir) {
+		EnumDecomposerSide side = this.sideTypes[dir.ordinal()];
+		return side == EnumDecomposerSide.IO
+				|| side == EnumDecomposerSide.OUTPUT
+				|| side == EnumDecomposerSide.OUTPUT_THAUM
+				|| side == EnumDecomposerSide.OUTPUT_ESSENTIA;
+	}
+
+	@Override
+	public void setSuction(Aspect paramAspect, int paramInt) {
+	}
+
+	@Override
+	public Aspect getSuctionType(ForgeDirection dir) {
+		return null;
+	}
+
+	@Override
+	public int getSuctionAmount(ForgeDirection dir) {
+		return 0;
+	}
+
+	@Override
+	public int takeEssentia(Aspect aspect, int amount, ForgeDirection dir) {
+		return this.canOutputTo(dir) && this.takeFromContainer(aspect, amount) ? amount : 0;
+	}
+
+	@Override
+	public int addEssentia(Aspect paramAspect, int paramInt, ForgeDirection dir) {
+		return 0;
+	}
+
+	@Override
+	public Aspect getEssentiaType(ForgeDirection dir) {
+		if (this.canOutputTo(dir) && this.aspects.size() > 0) {
+			return this.aspects.getAspects()[0];
+		}
+		return null;
+	}
+
+	@Override
+	public int getEssentiaAmount(ForgeDirection dir) {
+		if (this.canOutputTo(dir) && this.aspects.size() > 0) {
+			return this.aspects.getAmount(this.getEssentiaType(dir));
+		}
+		return 0;
+	}
+
+	@Override
+	public int getMinimumSuction() {
+		return 0;
+	}
+
+	@Override
+	public boolean renderExtendedTube() {
+		return true;
+	}
+
+	// data
 
 	public void sendGuiNetworkData(Container container, ICrafting player) {
 	}
@@ -412,6 +681,7 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 		}
 		tagCom.setTag("stackTags", stackTags);
 
+		tagCom.setInteger("augmentSize", this.augments.length);
 		NBTTagList augmentTags = new NBTTagList();
 		for (int slot = 0; slot < this.augments.length; slot++) {
 			if (this.augments[slot] != null) {
@@ -432,14 +702,17 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 				tagCom.setInteger("side" + side, this.sideTypes[side].ordinal());
 
 		NBTTagList augmentList = new NBTTagList();
-		for (String augment : this.hasAugments) {
+		for (EnumDecomposerAugment augment : this.augmentList) {
 			NBTTagCompound augmentTag = new NBTTagCompound();
-			augmentTag.setString("name", augment);
+			augmentTag.setString("name", augment.getStackName());
 			augmentList.appendTag(augmentTag);
 		}
 		tagCom.setTag("augmentList", augmentList);
 
-		this.heldAspects.writeToNBT(tagCom, "heldAspects");
+		this.aspects.writeToNBT(tagCom, "aspects");
+
+		tagCom.setInteger("controlMode", this.currentControl.ordinal());
+		tagCom.setBoolean("powered", this.powered);
 
 	}
 
@@ -454,6 +727,7 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 			this.stacks[slot] = ItemStack.loadItemStackFromNBT(stackTag);
 		}
 
+		this.augments = new ItemStack[tagCom.getInteger("augmentSize")];
 		NBTTagList augmentTags = tagCom.getTagList("augmentTags", 10);
 		for (int i = 0; i < augmentTags.tagCount(); i++) {
 			NBTTagCompound augmentTag = augmentTags.getCompoundTagAt(i);
@@ -465,16 +739,23 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 
 		this.timeUntilNextDecompose = tagCom.getInteger("timeToDecompose");
 
-		for (int side = 0; side < 6; side++)
-			this.sideTypes[side] = EnumDecomposerSide.values()[tagCom.getInteger("side" + side)];
-
-		this.hasAugments.clear();
-		NBTTagList augmentList = tagCom.getTagList("augmentList", 10);
-		for (int i = 0; i < augmentList.tagCount(); i++) {
-			this.hasAugments.add(augmentList.getCompoundTagAt(i).getString("name"));
+		for (int side = 0; side < 6; side++) {
+			this.sideTypes[side] = EnumDecomposerSide.values()
+					[tagCom.getInteger("side" + side)];
 		}
 
-		this.heldAspects.readFromNBT(tagCom, "heldAspects");
+		this.augmentList.clear();
+		NBTTagList augmentList = tagCom.getTagList("augmentList", 10);
+		for (int i = 0; i < augmentList.tagCount(); i++) {
+			this.augmentList.add(EnumDecomposerAugment.getByName(
+					augmentList.getCompoundTagAt(i).getString("name")
+			));
+		}
+
+		this.aspects.readFromNBT(tagCom, "aspects");
+
+		this.currentControl = ControlMode.values()[tagCom.getInteger("controlMode")];
+		this.powered = tagCom.getBoolean("powered");
 
 	}
 

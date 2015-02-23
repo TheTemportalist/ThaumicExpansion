@@ -66,11 +66,14 @@ public class ThermalHandler implements ISimpleBlockRenderingHandler {
 		block.setBlockBoundsForItemRender();
 		GL11.glTranslatef(-0.5f, -0.5f, -0.5f);
 
+		/*
 		ForgeDirection faceDir = ForgeDirection.EAST;
 		metadata = ((BlockDecomposer) block).getMetadata(
 				((BlockDecomposer) block).getTier(metadata),
 				faceDir
 		);
+		*/
+		ForgeDirection faceDir = ((BlockDecomposer) block).getDirection(metadata);
 		for (int i = 0; i < ForgeDirection.VALID_DIRECTIONS.length; i++) {
 			ForgeDirection dir = ForgeDirection.VALID_DIRECTIONS[i];
 			tess.startDrawingQuads();
@@ -78,7 +81,7 @@ public class ThermalHandler implements ISimpleBlockRenderingHandler {
 			this.renderFace(renderer, dir, block, 0, 0, 0, block.getIcon(i, metadata));
 			if (dir != faceDir)
 				this.renderFace(renderer, dir, block, 0, 0, 0,
-						EnumDecomposerSide.EMPTY.getIcon(dir.ordinal())
+						EnumDecomposerSide.NONE.getIcon(dir.ordinal())
 				);
 			tess.draw();
 		}
@@ -119,6 +122,9 @@ public class ThermalHandler implements ISimpleBlockRenderingHandler {
 		float var24 = frontWeight;
 		float var25 = sideWeight;
 
+		ForgeDirection faceDir = ((BlockDecomposer) block)
+				.getDirection(world.getBlockMetadata(x, y, z));
+
 		for (int i = 0; i < ForgeDirection.VALID_DIRECTIONS.length; i++) {
 			ForgeDirection dir = ForgeDirection.VALID_DIRECTIONS[i];
 			int x1 = x + dir.offsetX;
@@ -155,7 +161,7 @@ public class ThermalHandler implements ISimpleBlockRenderingHandler {
 				for (int iconIndex = 0; iconIndex < icons.length; iconIndex++)
 					if (icons[iconIndex] != null)
 						this.renderFace(renderer, dir, block, x, y, z, icons[iconIndex]);
-					else
+					else if (dir != faceDir)
 						FMLLog.info("ERROR ICON INDEX " + iconIndex + " ON SIDE " + dir.ordinal()
 								+ " is NULL");
 				didRender = true;
