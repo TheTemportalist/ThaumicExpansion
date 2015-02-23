@@ -4,6 +4,7 @@ import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.SidedProxy;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
+import cpw.mods.fml.common.network.NetworkRegistry;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 import thaumcraft.api.aspects.Aspect;
@@ -38,6 +39,7 @@ public class Scanner {
 	public void preinit(FMLPreInitializationEvent event) {
 
 		Scanner.proxy.register();
+		NetworkRegistry.INSTANCE.registerGuiHandler(Scanner.instance, Scanner.proxy);
 
 		this.decomposer = new BlockDecomposer(Material.rock, Scanner.MODID, "decomposer");
 

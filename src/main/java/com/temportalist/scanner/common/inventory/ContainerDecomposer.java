@@ -7,12 +7,14 @@ import cofh.lib.util.helpers.AugmentHelper;
 import cofh.lib.util.helpers.ItemHelper;
 import com.temportalist.scanner.common.TEDecomposer;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.inventory.Container;
-import net.minecraft.inventory.IInventory;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
 
 /**
+ * http://pastebin.com/UGcqGN1n
+ *
  * @author TheTemportalist
  */
 public class ContainerDecomposer extends Container implements IAugmentableContainer {
@@ -21,7 +23,7 @@ public class ContainerDecomposer extends Container implements IAugmentableContai
 	private Slot[] augments;
 	protected boolean augmentLock = true;
 
-	public ContainerDecomposer(TEDecomposer tile, IInventory playerInv) {
+	public ContainerDecomposer(TEDecomposer tile, InventoryPlayer playerInv) {
 		this.tile = tile;
 
 		tile.openInventory();

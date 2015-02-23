@@ -18,9 +18,7 @@ import net.minecraft.util.IIcon;
 import net.minecraft.util.MathHelper;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
-import thaumcraft.api.ThaumcraftApiHelper;
 import thaumcraft.api.aspects.Aspect;
-import thaumcraft.api.aspects.AspectList;
 import thaumcraft.common.Thaumcraft;
 import thaumcraft.common.lib.network.PacketHandler;
 import thaumcraft.common.lib.network.playerdata.PacketAspectPool;
@@ -149,8 +147,9 @@ public class BlockDecomposer extends Block implements ITileEntityProvider {
 	@Override
 	public boolean onBlockActivated(World world, int x, int y, int z, EntityPlayer player, int side,
 			float hitX, float hitY, float hitZ) {
-		if (!world.isRemote && player.getHeldItem() != null) {
-			///*
+		if (player.getHeldItem() != null) {
+			if (!world.isRemote) {
+			/*
 			AspectList aspects = ThaumcraftApiHelper.getObjectAspects(player.getHeldItem());
 			Aspect[] aspects1 = aspects.getAspects();
 			for (int i = 0; i < aspects1.length; i++) {
@@ -160,6 +159,8 @@ public class BlockDecomposer extends Block implements ITileEntityProvider {
 				this.addAspect((EntityPlayerMP) player, aspect, amount);
 			}
 			//*/
+			}
+			player.openGui(Scanner.instance, 0, world, x, y, z);
 
 			return true;
 		}
