@@ -1,0 +1,16 @@
+[
+{
+  "modid": "scanner",
+  "name": "Scanner",
+  "description": "Put Desc Here",
+  "version": "${version}",
+  "mcversion": "${mcversion}",
+  "url": "",
+  "updateUrl": "",
+  "authorList": ["The Temportalist"],
+  "credits": "",
+  "logoFile": "",
+  "screenshots": [],
+  "dependencies": []
+}
+]
