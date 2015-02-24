@@ -63,7 +63,6 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 	@Override
 	public void updateEntity() {
 		if (this.canOperate() && this.stacks[0] != null) {
-			//FMLLog.info("T: " + this.timeUntilNextDecompose + ":" + this.currentTimeMax);
 			if (this.timeUntilNextDecompose < 0) {
 				// Int energy, AspectList filteredList, Int time
 				this.outputVars = this.calculateAndFilter(this.stacks[0]);
@@ -225,15 +224,19 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 	}
 
 	public void giveResearch(EntityPlayerMP player, int aspectIndex, boolean takeAllVsOne) {
-		Aspect[] aspects = this.aspects.getAspects();
+		Aspect[] aspects = this.aspects.getAspectsSorted();
 		if (aspectIndex < aspects.length) {
 			Aspect aspect = aspects[aspectIndex];
-			int currentAmount = this.aspects.getAmount(aspect);
-			if (takeAllVsOne || currentAmount <= 1)
-				this.aspects.remove(aspect);
-			else
-				this.aspects.reduce(aspect, 1);
-			this.addAspect(player, aspect, (short) (takeAllVsOne ? currentAmount : 1));
+			if (aspect == null)
+				this.aspects.remove(null);
+			else {
+				int currentAmount = this.aspects.getAmount(aspect);
+				if (takeAllVsOne || currentAmount <= 1)
+					this.aspects.remove(aspect);
+				else
+					this.aspects.reduce(aspect, 1);
+				this.addAspect(player, aspect, (short) (takeAllVsOne ? currentAmount : 1));
+			}
 		}
 	}
 
@@ -304,8 +307,6 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 			return true;
 		if (this.isValidSlot(slot)) {
 			AspectList list = ThaumcraftApiHelper.getObjectAspects(itemStack);
-			//FMLLog.info(itemStack.getDisplayName() + " has " + (list != null ? list.size() : 0)
-			//		+ " aspects");
 			return list != null && list.size() > 0;
 		}
 		return false;
@@ -414,6 +415,7 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 		this.augmentList.clear();
 		for (int slot = 0; slot < this.augments.length; slot++) {
 			if (this.augments[slot] != null) {
+				//FMLLog.info(this.augments[slot].getDisplayName());
 				FMLLog.info(Scanner.getFullName(this.augments[slot]));
 				EnumDecomposerAugment augmentEnum = EnumDecomposerAugment.getByName(
 						Scanner.getFullName(this.augments[slot])

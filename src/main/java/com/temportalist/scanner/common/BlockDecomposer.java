@@ -40,7 +40,6 @@ public class BlockDecomposer extends Block implements ITileEntityProvider {
 		this.setBlockName(name);
 		GameRegistry.registerBlock(this, name);
 		GameRegistry.registerTileEntity(TEDecomposer.class, Scanner.MODID + ":" + "Decomposer");
-		this.setCreativeTab(CreativeTabs.tabRedstone);
 		this.isBlockContainer = true;
 
 	}

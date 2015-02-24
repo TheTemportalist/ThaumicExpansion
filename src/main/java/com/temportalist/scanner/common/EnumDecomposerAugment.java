@@ -6,15 +6,16 @@ package com.temportalist.scanner.common;
 public enum EnumDecomposerAugment {
 
 	// auto ejection
-	INTEGRATED_SERVO(""),
+	INTEGRATED_SERVO(0),
 	// redstone control
-	INTEGRATED_REDSTONE(""),
-	SECONDARY_RECEPTION_COIL("", 2, 3, new double[] { .95, 1, 1, 1 }),
-	OVERCLOCK_GEARBOX("", 4, 8, new double[] { .85, 1, 1, 1 }),
-	SPACE_TIME_FLUX("", 8, 20, new double[] { .70, 1, 1, 1 }),
+	INTEGRATED_REDSTONE(32),
+	SECONDARY_RECEPTION_COIL(128, 2, 3, new double[] { .95, 1, 1, 1 }),
+	OVERCLOCK_GEARBOX(129, 4, 8, new double[] { .85, 1, 1, 1 }),
+	SPACE_TIME_FLUX(130, 8, 20, new double[] { .70, 1, 1, 1 }),
 	// keeps items in, and can only hold 1 at a time
-	ITEM_KEEPER(""),
-	THAUMIC_ADJUSTER("", 1, 1, new double[] { 1, 1, 1, 1.1 });
+	ITEM_KEEPER(Scanner.MODID + ":augment-itemKeeper:0"),
+	THAUMIC_ADJUSTER(Scanner.MODID + ":augment-thaulmicAdjuster:0", 1, 1,
+			new double[] { 1, 1, 1, 1.1 });
 
 	private final String stackName;
 
@@ -31,6 +32,16 @@ public enum EnumDecomposerAugment {
 
 	private EnumDecomposerAugment(String itemFullName) {
 		this(itemFullName, 1, 1, new double[] { 1, 1, 1, 1 });
+	}
+
+	private EnumDecomposerAugment(int temeta, double speedMultiplier,
+			double energyRequirementMultiplier, double[] outputMultipliers) {
+		this("ThermalExpansion:augment:" + temeta,
+				speedMultiplier, energyRequirementMultiplier, outputMultipliers);
+	}
+
+	private EnumDecomposerAugment(int temeta) {
+		this(temeta, 1, 1, new double[] { 1, 1, 1, 1 });
 	}
 
 	public String getStackName() {

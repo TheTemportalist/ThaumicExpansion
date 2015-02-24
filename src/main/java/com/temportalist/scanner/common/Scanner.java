@@ -6,9 +6,11 @@ import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.network.NetworkRegistry;
 import cpw.mods.fml.common.registry.GameData;
-import cpw.mods.fml.common.registry.GameRegistry;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
+import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.init.Blocks;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.common.config.Configuration;
 import thaumcraft.api.aspects.Aspect;
@@ -34,6 +36,8 @@ public class Scanner {
 	public static ProxyCommon proxy;
 
 	public Block decomposer;
+	public Item itemKeeper, thaulmicAdjuster;
+
 	public static final HashMap<Aspect, Integer> aspectTiers = new HashMap<Aspect, Integer>();
 	/**
 	 * Aspect Tier -> [Energy taken, Time taken]
@@ -71,6 +75,11 @@ public class Scanner {
 		this.initConfig(event.getModConfigurationDirectory());
 
 		this.decomposer = new BlockDecomposer(Material.rock, Scanner.MODID, "decomposer");
+		this.decomposer.setCreativeTab(CreativeTabs.tabRedstone);
+		this.itemKeeper = new ItemAugment(Scanner.MODID, "itemKeeper");
+		this.itemKeeper.setCreativeTab(CreativeTabs.tabRedstone);
+		this.thaulmicAdjuster = new ItemAugment(Scanner.MODID, "thaulmicAdjuster");
+		this.thaulmicAdjuster.setCreativeTab(CreativeTabs.tabRedstone);
 
 		// todo use config
 		Scanner.decompositionStats.put(1, new int[] { 05, 10 });
@@ -117,18 +126,18 @@ public class Scanner {
 
 	}
 
-	public static String getFullName(ItemStack stack) {
-		if (stack == null)
+	public static String getFullName(ItemStack itemStack) {
+		if (itemStack == null)
 			return null;
-
-		GameRegistry.UniqueIdentifier ui = new GameRegistry.UniqueIdentifier(
-				Block.getBlockFromItem(stack.getItem()) == null ?
-						GameData.getItemRegistry().getNameForObject(stack.getItem()) :
-						GameData.getBlockRegistry().getNameForObject(
-								Block.getBlockFromItem(stack.getItem())
-						)
-		);
-		return ui.modId + ":" + ui.name + ":" + stack.getItemDamage();
+		String name;
+		if (Block.getBlockFromItem(itemStack.getItem()) == Blocks.air) {
+			name = GameData.getItemRegistry().getNameForObject(itemStack.getItem());
+		}
+		else {
+			name = GameData.getBlockRegistry().getNameForObject(Block.getBlockFromItem(
+					itemStack.getItem()));
+		}
+		return name + ":" + itemStack.getItemDamage();
 	}
 
 }

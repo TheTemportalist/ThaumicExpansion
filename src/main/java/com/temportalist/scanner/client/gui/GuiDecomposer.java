@@ -10,7 +10,6 @@ import com.temportalist.scanner.common.PacketRecieveAspect;
 import com.temportalist.scanner.common.Scanner;
 import com.temportalist.scanner.common.TEDecomposer;
 import com.temportalist.scanner.common.inventory.ContainerDecomposer;
-import cpw.mods.fml.common.FMLLog;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.inventory.Slot;
 import net.minecraft.util.ResourceLocation;
@@ -75,7 +74,6 @@ public class GuiDecomposer extends GuiBaseAdv {
 	protected void mouseClicked(int mouseX, int mouseY, int mouseButton) {
 		super.mouseClicked(mouseX, mouseY, mouseButton);
 		// -1 released, 0 left, 1 right, 2 center
-		FMLLog.info(mouseButton + "");
 		if (mouseButton == 0 || mouseButton == 2) {
 			for (int i = 0; i < this.aspectSlots.length; i++) {
 				if (this.isMouseOverArea(mouseX, mouseY, this.aspectSlots[i])) {
@@ -117,7 +115,7 @@ public class GuiDecomposer extends GuiBaseAdv {
 		// aspect 0,0 is 116x9
 		int indexOffset = this.getAspectOffset();
 		AspectList aspectList = this.container().tile.getAspects();
-		Aspect[] aspects = aspectList.getAspects();
+		Aspect[] aspects = aspectList.getAspectsSorted();
 		for (int i = 0; i < this.aspectSlots.length; i++) {
 			int aspectI = i + indexOffset;
 			if (aspectI < aspects.length) {
