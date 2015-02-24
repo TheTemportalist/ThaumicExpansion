@@ -6,6 +6,8 @@ import cofh.lib.gui.slot.SlotFalseCopy;
 import cofh.lib.util.helpers.AugmentHelper;
 import cofh.lib.util.helpers.ItemHelper;
 import com.temportalist.scanner.common.TEDecomposer;
+import cpw.mods.fml.relauncher.Side;
+import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.inventory.Container;
@@ -65,9 +67,9 @@ public class ContainerDecomposer extends Container implements IAugmentableContai
 	@Override
 	public void setAugmentLock(boolean b) {
 		this.augmentLock = b;
-		/* todo
+		/*
 		if (ServerHelper.isClientWorld(this.tile.getWorldObj())) {
-			PacketTEBase.sendTabAugmentPacketToServer(lock);
+			PacketTEBase.sendTabAugmentPacketToServer(b);
 		}
 		*/
 	}
@@ -85,6 +87,7 @@ public class ContainerDecomposer extends Container implements IAugmentableContai
 		}
 	}
 
+	@SideOnly(Side.CLIENT)
 	@Override
 	public void updateProgressBar(int i, int j) {
 		this.tile.receiveGuiNetworkData(i, j);

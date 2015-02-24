@@ -44,7 +44,7 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 
 	protected EnergyStorage energyStorage = new EnergyStorage(Scanner.maxEnergyStorage);
 	private ItemStack[] stacks = new ItemStack[2];
-	private ItemStack[] augments = new ItemStack[0];
+	private ItemStack[] augments = new ItemStack[3];
 	private List<EnumDecomposerAugment> augmentList = new ArrayList<EnumDecomposerAugment>();
 	private AspectList aspects = new AspectList();
 	private Object[] outputVars = null;
@@ -207,27 +207,6 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 		return (BlockDecomposer) this.getBlockType();
 	}
 
-	private int getAugmentsFromTier(int tier) {
-		switch (tier) {
-			case 1:
-				return 1;
-			case 2:
-				return 3;
-			case 3:
-				return 4;
-			case 4:
-				return 6;
-			default:
-				return 0;
-		}
-	}
-
-	public void onPlaced() {
-		this.augments = new ItemStack[this.getAugmentsFromTier(
-				this.getBlock().getTier(this.getBlockMetadata()) + 1
-		)];
-	}
-
 	public boolean isProcessing() {
 		return this.timeUntilNextDecompose > -1;
 	}
@@ -279,15 +258,12 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 
 	@Override
 	public void setInventorySlotContents(int slot, ItemStack stack) {
-		if (stack != null && stack.stackSize <= 0)
-			stack = null;
-		if (stack == null || this.isItemValidForSlot(slot, stack)) {
-			this.stacks[slot] = stack;
-			FMLLog.info(slot + ": " + (this.stacks[slot] == null ?
-					"null" :
-					this.stacks[slot].getDisplayName()));
-			this.markDirty();
-		}
+		System.out.println(slot + ": " + (
+				stack == null ? "null" :
+						stack.getDisplayName() + ":" + stack.stackSize
+		));
+		this.stacks[slot] = stack;
+		this.markDirty();
 	}
 
 	@Override

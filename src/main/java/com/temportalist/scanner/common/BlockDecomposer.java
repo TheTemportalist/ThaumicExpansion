@@ -146,7 +146,6 @@ public class BlockDecomposer extends Block implements ITileEntityProvider {
 		this.setTierAndDir(world, x, y, z,
 				this.getTier(stack.getItemDamage()), ForgeDirection.getOrientation(convertedFacing)
 		);
-		((TEDecomposer) world.getTileEntity(x, y, z)).onPlaced();
 	}
 
 	@Override
