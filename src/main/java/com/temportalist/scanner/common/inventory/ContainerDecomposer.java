@@ -2,7 +2,6 @@ package com.temportalist.scanner.common.inventory;
 
 import cofh.core.gui.slot.SlotAugment;
 import cofh.lib.gui.container.IAugmentableContainer;
-import cofh.lib.gui.slot.SlotFalseCopy;
 import cofh.lib.util.helpers.AugmentHelper;
 import cofh.lib.util.helpers.ItemHelper;
 import com.temportalist.scanner.common.TEDecomposer;
@@ -137,25 +136,6 @@ public class ContainerDecomposer extends Container implements IAugmentableContai
 			}
 		}
 		return stack;
-	}
-
-	@Override
-	public ItemStack slotClick(int slotId, int mouseButton, int modifier, EntityPlayer player) {
-
-		Slot slot = slotId < 0 ? null : (Slot) this.inventorySlots.get(slotId);
-		if (slot instanceof SlotFalseCopy) {
-			if (mouseButton == 2) {
-				slot.putStack(null);
-				slot.onSlotChanged();
-			}
-			else {
-				slot.putStack(player.inventory.getItemStack() == null ?
-						null :
-						player.inventory.getItemStack().copy());
-			}
-			return player.inventory.getItemStack();
-		}
-		return super.slotClick(slotId, mouseButton, modifier, player);
 	}
 
 	@Override

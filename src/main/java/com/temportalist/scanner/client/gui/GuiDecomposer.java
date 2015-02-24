@@ -4,10 +4,13 @@ import cofh.core.gui.GuiBaseAdv;
 import cofh.core.gui.element.TabAugment;
 import cofh.core.gui.element.TabConfiguration;
 import cofh.core.gui.element.TabRedstone;
+import cofh.core.network.PacketHandler;
 import cofh.lib.gui.element.ElementEnergyStored;
+import com.temportalist.scanner.common.PacketRecieveAspect;
 import com.temportalist.scanner.common.Scanner;
 import com.temportalist.scanner.common.TEDecomposer;
 import com.temportalist.scanner.common.inventory.ContainerDecomposer;
+import cpw.mods.fml.common.FMLLog;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.inventory.Slot;
 import net.minecraft.util.ResourceLocation;
@@ -42,9 +45,6 @@ public class GuiDecomposer extends GuiBaseAdv {
 	public void initGui() {
 		super.initGui();
 
-		int centerX = (this.width - this.xSize) / 2;
-		int centerY = (this.height - this.ySize) / 2;
-
 		this.addElement(new ElementEnergyStored(
 				this, 8, 8, this.container().tile.getEnergyStorage()
 		));
@@ -52,6 +52,49 @@ public class GuiDecomposer extends GuiBaseAdv {
 		this.addTab(new TabConfiguration(this, this.container().tile));
 		this.addTab(new TabRedstone(this, this.container().tile));
 
+		int centerX = (this.width / 2);
+		int centerY = (this.height / 2);
+
+		this.constructBoundsOfAspects(centerX + 28, centerY - 74, 3, 4);
+
+	}
+
+	private int[][] aspectSlots;
+
+	private void constructBoundsOfAspects(int startX, int startY, int qX, int qY) {
+		this.aspectSlots = new int[qX * qY][4];
+		int slotWidth = 16, slotHeight = 16, slotBreakX = 2, slotBreakY = 2;
+		for (int i = 0; i < this.aspectSlots.length; i++) {
+			int x = startX + (i / qX) * (slotWidth + slotBreakX);
+			int y = startY + (i % qX) * (slotHeight + slotBreakY);
+			this.aspectSlots[i] = new int[] { x, y, slotWidth, slotHeight };
+		}
+	}
+
+	@Override
+	protected void mouseClicked(int mouseX, int mouseY, int mouseButton) {
+		super.mouseClicked(mouseX, mouseY, mouseButton);
+		// -1 released, 0 left, 1 right, 2 center
+		FMLLog.info(mouseButton + "");
+		if (mouseButton == 0 || mouseButton == 2) {
+			for (int i = 0; i < this.aspectSlots.length; i++) {
+				if (this.isMouseOverArea(mouseX, mouseY, this.aspectSlots[i])) {
+					PacketHandler.sendToServer(new PacketRecieveAspect(
+							this.container().tile, i + this.getAspectOffset(), mouseButton == 0
+					));
+					break;
+				}
+			}
+		}
+	}
+
+	private boolean isMouseOverArea(int mouseX, int mouseY, int[] xywh) {
+		return mouseX >= xywh[0] && mouseX <= xywh[0] + xywh[2] &&
+				mouseY >= xywh[1] && mouseY <= xywh[1] + xywh[3];
+	}
+
+	private int getAspectOffset() {
+		return this.container().tile.getColumnOffset() * 4;
 	}
 
 	@Override
@@ -72,16 +115,19 @@ public class GuiDecomposer extends GuiBaseAdv {
 		}
 
 		// aspect 0,0 is 116x9
-		int xStart = centerX + 28;
-		int yStart = centerY - 74;
-		int indexOffset = this.container().tile.getColumnOffset() * 4;
+		int indexOffset = this.getAspectOffset();
 		AspectList aspectList = this.container().tile.getAspects();
 		Aspect[] aspects = aspectList.getAspects();
-		for (int i = indexOffset; i < aspects.length; i++) {
-			int index = i - indexOffset;
-			int x = xStart + (index / 4) * 18;
-			int y = yStart + (index % 4) * 18;
-			UtilsFX.drawTag(x, y, aspects[i], aspectList.getAmount(aspects[i]), 0, this.zLevel);
+		for (int i = 0; i < this.aspectSlots.length; i++) {
+			int aspectI = i + indexOffset;
+			if (aspectI < aspects.length) {
+				int x = this.aspectSlots[i][0];
+				int y = this.aspectSlots[i][1];
+				UtilsFX.drawTag(x, y,
+						aspects[aspectI], aspectList.getAmount(aspects[aspectI]),
+						0, this.zLevel
+				);
+			}
 		}
 
 	}

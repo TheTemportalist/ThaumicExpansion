@@ -10,6 +10,7 @@ import cpw.mods.fml.common.FMLLog;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.inventory.Container;
 import net.minecraft.inventory.ICrafting;
 import net.minecraft.inventory.ISidedInventory;
@@ -27,6 +28,9 @@ import thaumcraft.api.aspects.Aspect;
 import thaumcraft.api.aspects.AspectList;
 import thaumcraft.api.aspects.IAspectContainer;
 import thaumcraft.api.aspects.IEssentiaTransport;
+import thaumcraft.common.Thaumcraft;
+import thaumcraft.common.lib.network.playerdata.PacketAspectPool;
+import thaumcraft.common.lib.research.ResearchManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,7 +44,7 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 		IAugmentable, IRotateableTile, IReconfigurableFacing, IReconfigurableSides, ISidedTexture,
 		IRedstoneControl, IAspectContainer, IEssentiaTransport {
 
-	public static final int hexagonProgressSteps = 10;
+	public static final int hexagonProgressSteps = 13;
 
 	protected EnergyStorage energyStorage = new EnergyStorage(Scanner.maxEnergyStorage);
 	private ItemStack[] stacks = new ItemStack[2];
@@ -220,7 +224,39 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 		return this.currentColumnOffset;
 	}
 
+	public void giveResearch(EntityPlayerMP player, int aspectIndex, boolean takeAllVsOne) {
+		Aspect[] aspects = this.aspects.getAspects();
+		if (aspectIndex < aspects.length) {
+			Aspect aspect = aspects[aspectIndex];
+			int currentAmount = this.aspects.getAmount(aspect);
+			if (takeAllVsOne || currentAmount <= 1)
+				this.aspects.remove(aspect);
+			else
+				this.aspects.reduce(aspect, 1);
+			this.addAspect(player, aspect, (short) (takeAllVsOne ? currentAmount : 1));
+		}
+	}
+
+	private void addAspect(EntityPlayerMP player, Aspect aspect, short amount) {
+		Thaumcraft.proxy.playerKnowledge.addAspectPool(
+				player.getCommandSenderName(), aspect, amount
+		);
+		ResearchManager.scheduleSave(player);
+		thaumcraft.common.lib.network.PacketHandler.INSTANCE.sendTo(
+				new PacketAspectPool(
+						aspect.getTag(), amount,
+						Thaumcraft.proxy.playerKnowledge.getAspectPoolFor(
+								player.getCommandSenderName(), aspect
+						)
+				), player
+		);
+	}
+
 	// ~~~~~~~~~~~~~~~ Below is background functionality, Tinker at your own risk ~~~~~~~~~~~~~~~
+
+	private boolean isValidSlot(int slot) {
+		return 0 <= slot && slot < this.stacks.length;
+	}
 
 	@Override
 	public int getSizeInventory() {
@@ -244,7 +280,7 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 
 	@Override
 	public ItemStack getStackInSlot(int slot) {
-		return this.stacks[slot];
+		return this.isValidSlot(slot) ? this.stacks[slot] : null;
 	}
 
 	@Override
@@ -254,18 +290,19 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 
 	@Override
 	public void setInventorySlotContents(int slot, ItemStack stack) {
-		System.out.println(slot + ": " + (
-				stack == null ? "null" :
-						stack.getDisplayName() + ":" + stack.stackSize
-		));
-		if (stack == null || this.isItemValidForSlot(slot, stack)) {
-			this.stacks[slot] = stack;
+		if (this.isValidSlot(slot)) {
+			if (stack == null)
+				this.stacks[slot] = null;
+			else if (this.isItemValidForSlot(slot, stack))
+				this.stacks[slot] = stack.copy();
 		}
 	}
 
 	@Override
 	public boolean isItemValidForSlot(int slot, ItemStack itemStack) {
-		if (slot >= 0 && slot < this.stacks.length && itemStack != null) {
+		if (itemStack == null)
+			return true;
+		if (this.isValidSlot(slot)) {
 			AspectList list = ThaumcraftApiHelper.getObjectAspects(itemStack);
 			//FMLLog.info(itemStack.getDisplayName() + " has " + (list != null ? list.size() : 0)
 			//		+ " aspects");
@@ -276,19 +313,17 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 
 	@Override
 	public ItemStack decrStackSize(int slot, int amount) {
-		System.out.println("Decr:" + slot + ":" + amount);
-		if (this.stacks[slot] == null) {
-			return null;
+		ItemStack stack = null;
+		if (this.isValidSlot(slot) && this.stacks[slot] != null) {
+			if (this.stacks[slot].stackSize <= amount) {
+				amount = this.stacks[slot].stackSize;
+			}
+			stack = this.stacks[slot].splitStack(amount);
+			if (this.stacks[slot].stackSize <= 0) {
+				this.stacks[slot] = null;
+			}
 		}
-		if (this.stacks[slot].stackSize <= amount) {
-			amount = this.stacks[slot].stackSize;
-		}
-		ItemStack stack = this.stacks[slot].splitStack(amount);
-
-		if (this.stacks[slot].stackSize <= 0) {
-			this.stacks[slot] = null;
-		}
-
+		this.markDirty();
 		return stack;
 	}
 
@@ -312,12 +347,13 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 
 	@Override
 	public boolean canInsertItem(int slot, ItemStack stack, int side) {
-		return slot >= 0 && slot < this.stacks.length && this.canInput_Item(side);
+		return this.isValidSlot(slot) && this.canInput_Item(side) && this
+				.isItemValidForSlot(slot, stack);
 	}
 
 	@Override
 	public boolean canExtractItem(int slot, ItemStack stack, int side) {
-		return slot >= 0 && slot < this.stacks.length && this.canOutput_Item(side);
+		return this.isValidSlot(slot) && this.canOutput_Item(side);
 	}
 
 	@Override
@@ -355,6 +391,7 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 	@Override
 	public int receiveEnergy(ForgeDirection from, int maxReceive, boolean simulate) {
 		int ret = this.energyStorage.receiveEnergy(maxReceive, simulate);
+		this.markDirty();
 		return ret;
 	}
 
@@ -369,10 +406,11 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 	}
 
 	/**
-	 * Ran whenever augments change
+	 * Ran when slots are set in container
 	 */
 	@Override
 	public void installAugments() {
+		int augmentPreSize = this.augmentList.size();
 		this.augmentList.clear();
 		for (int slot = 0; slot < this.augments.length; slot++) {
 			if (this.augments[slot] != null) {
@@ -384,8 +422,9 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 					this.augmentList.add(augmentEnum);
 			}
 		}
-		// if you change the augments, you will reset the progress
-		this.resetTimer();
+		if (augmentPreSize != this.augmentList.size())
+			// if you change the augments, you will reset the progress
+			this.resetTimer();
 	}
 
 	@Override
@@ -672,12 +711,6 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 	public void receiveGuiNetworkData(int i, int j) {
 	}
 
-	@Override
-	public void markDirty() {
-		super.markDirty();
-		this.getWorldObj().markBlockForUpdate(this.xCoord, this.yCoord, this.zCoord);
-	}
-
 	private void sync() {
 		PacketHandler.sendToServer(new PacketTileSync(this));
 	}
@@ -707,7 +740,7 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 			if (this.stacks[slot] != null) {
 				NBTTagCompound stackTag = new NBTTagCompound();
 				this.stacks[slot].writeToNBT(stackTag);
-				stackTag.setInteger("slot", slot);
+				stackTag.setInteger("slot", (byte) slot);
 				stackTags.appendTag(stackTag);
 			}
 		}
@@ -763,7 +796,7 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 		NBTTagList stackTags = tagCom.getTagList("stackTags", 10);
 		for (int i = 0; i < stackTags.tagCount(); i++) {
 			NBTTagCompound stackTag = stackTags.getCompoundTagAt(i);
-			int slot = stackTag.getInteger("slot");
+			int slot = stackTag.getInteger("slot") & 255;
 			this.stacks[slot] = ItemStack.loadItemStackFromNBT(stackTag);
 		}
 

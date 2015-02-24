@@ -66,6 +66,7 @@ public class Scanner {
 		Scanner.proxy.register();
 		NetworkRegistry.INSTANCE.registerGuiHandler(Scanner.instance, Scanner.proxy);
 		PacketTileSync.init();
+		PacketRecieveAspect.init();
 
 		this.initConfig(event.getModConfigurationDirectory());
 

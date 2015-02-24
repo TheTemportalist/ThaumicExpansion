@@ -26,7 +26,7 @@ public class ProxyClient extends ProxyCommon {
 		if (tile != null) {
 			if (ID == 0 && tile instanceof TEDecomposer) {
 				return new GuiDecomposer(
-						new ContainerDecomposer((TEDecomposer) tile, player.inventory)
+						(ContainerDecomposer) this.getServerGuiElement(ID, player, world, x, y, z)
 				);
 			}
 		}
