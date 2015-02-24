@@ -69,7 +69,6 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 							(Integer) this.outputVars[2] * 20
 					); // times 20 for ticks
 					this.timeUntilNextDecompose = 0;
-					this.markDirty();
 				}
 			}
 			else if (this.currentTimeMax > -1) {
@@ -172,7 +171,6 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 
 	private void resetTimer() {
 		this.currentTimeMax = this.timeUntilNextDecompose = -1;
-		this.markDirty();
 	}
 
 	private int getAdjustedTime(int baseTimeInTicks) {
@@ -246,9 +244,7 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 
 	@Override
 	public ItemStack getStackInSlot(int slot) {
-		if (slot >= 0 && slot < this.stacks.length)
-			return this.stacks[slot];
-		return null;
+		return this.stacks[slot];
 	}
 
 	@Override
@@ -262,8 +258,9 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 				stack == null ? "null" :
 						stack.getDisplayName() + ":" + stack.stackSize
 		));
-		this.stacks[slot] = stack;
-		this.markDirty();
+		if (stack == null || this.isItemValidForSlot(slot, stack)) {
+			this.stacks[slot] = stack;
+		}
 	}
 
 	@Override
@@ -279,21 +276,20 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 
 	@Override
 	public ItemStack decrStackSize(int slot, int amount) {
-		if (slot >= 0 && slot < this.stacks.length && this.stacks[slot] != null) {
-			ItemStack stack;
-			if (this.stacks[slot].stackSize <= amount) {
-				stack = this.stacks[slot];
-				this.stacks[slot] = null;
-			}
-			else {
-				stack = this.stacks[slot].splitStack(amount);
-				if (this.stacks[slot].stackSize <= 0)
-					this.stacks[slot] = null;
-			}
-			this.markDirty();
-			return stack;
+		System.out.println("Decr:" + slot + ":" + amount);
+		if (this.stacks[slot] == null) {
+			return null;
 		}
-		return null;
+		if (this.stacks[slot].stackSize <= amount) {
+			amount = this.stacks[slot].stackSize;
+		}
+		ItemStack stack = this.stacks[slot].splitStack(amount);
+
+		if (this.stacks[slot].stackSize <= 0) {
+			this.stacks[slot] = null;
+		}
+
+		return stack;
 	}
 
 	private boolean canInput_Item(int side) {
@@ -311,7 +307,7 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 	public int[] getAccessibleSlotsFromSide(int side) {
 		return side == 0 ?
 				new int[] { 1 } :
-				new int[1]; // bottom can only access the capacitor slot
+				new int[] { 0 }; // bottom can only access the capacitor slot
 	}
 
 	@Override
@@ -359,7 +355,6 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 	@Override
 	public int receiveEnergy(ForgeDirection from, int maxReceive, boolean simulate) {
 		int ret = this.energyStorage.receiveEnergy(maxReceive, simulate);
-		this.markDirty();
 		return ret;
 	}
 
@@ -470,7 +465,6 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 				this.getBlock().getTier(this.getBlockMetadata()),
 				ForgeDirection.getOrientation(i)
 		);
-		this.markDirty();
 		return true;
 	}
 
@@ -502,7 +496,6 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 	public boolean resetSides() {
 		for (int side = 0; side < this.sideTypes.length; side++)
 			this.sideTypes[side] = EnumDecomposerSide.NONE;
-		this.markDirty();
 		return true;
 	}
 
@@ -532,7 +525,6 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 	@Override
 	public void setPowered(boolean b) {
 		this.powered = b;
-		this.markDirty();
 	}
 
 	@Override
@@ -550,7 +542,6 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 	@Override
 	public void setAspects(AspectList newList) {
 		this.aspects = newList;
-		this.markDirty();
 	}
 
 	@Override
@@ -561,14 +552,12 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 	@Override
 	public int addToContainer(Aspect aspect, int amount) {
 		this.aspects.add(aspect, amount);
-		this.markDirty();
 		return amount;
 	}
 
 	@Override
 	public boolean takeFromContainer(Aspect aspect, int amount) {
 		boolean ret = this.aspects.reduce(aspect, amount);
-		this.markDirty();
 		return ret;
 	}
 
@@ -691,7 +680,6 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 
 	private void sync() {
 		PacketHandler.sendToServer(new PacketTileSync(this));
-		this.markDirty();
 	}
 
 	@Override
