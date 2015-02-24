@@ -48,7 +48,7 @@ public class ContainerDecomposer extends Container implements IAugmentableContai
 		}
 
 		// tile inv
-		this.addSlotToContainer(new Slot(tile, 0, 20, 20));
+		this.addSlotToContainer(new Slot(tile, 0, 45 + 8, 19 + 8)); // todo
 
 		this.augments = new Slot[this.tile.getAugmentSlots().length];
 		for (int i = 0; i < this.augments.length; i++) {
@@ -92,13 +92,14 @@ public class ContainerDecomposer extends Container implements IAugmentableContai
 
 	@Override
 	public ItemStack transferStackInSlot(EntityPlayer player, int slotIndex) {
+
 		ItemStack stack = null;
 		Slot slot = (Slot) inventorySlots.get(slotIndex);
 
-		int invAugment = this.augments.length;
+		int invAugment = 0;
 		int invPlayer = invAugment + 27;
 		int invFull = invPlayer + 9;
-		int invTile = invFull + this.tile.getSizeInventory();
+		int invTile = invFull + 1; // the slots in the container from the inventory
 
 		if (slot != null && slot.getHasStack()) {
 			ItemStack stackInSlot = slot.getStack();
@@ -137,6 +138,7 @@ public class ContainerDecomposer extends Container implements IAugmentableContai
 
 	@Override
 	public ItemStack slotClick(int slotId, int mouseButton, int modifier, EntityPlayer player) {
+
 		Slot slot = slotId < 0 ? null : (Slot) this.inventorySlots.get(slotId);
 		if (slot instanceof SlotFalseCopy) {
 			if (mouseButton == 2) {
@@ -155,6 +157,7 @@ public class ContainerDecomposer extends Container implements IAugmentableContai
 
 	@Override
 	protected boolean mergeItemStack(ItemStack stack, int slotMin, int slotMax, boolean ascending) {
+
 		boolean slotFound = false;
 		int k = ascending ? slotMax - 1 : slotMin;
 
