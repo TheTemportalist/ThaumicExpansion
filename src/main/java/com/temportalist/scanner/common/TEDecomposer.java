@@ -1,9 +1,11 @@
 package com.temportalist.scanner.common;
 
 import cofh.api.energy.EnergyStorage;
+import cofh.api.energy.IEnergyConnection;
 import cofh.api.energy.IEnergyHandler;
 import cofh.api.energy.IEnergyStorage;
 import cofh.api.tileentity.*;
+import cofh.api.transport.IItemDuct;
 import cofh.core.network.ITileInfoPacketHandler;
 import cofh.core.network.PacketCoFHBase;
 import cofh.core.network.PacketHandler;
@@ -17,6 +19,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.inventory.Container;
 import net.minecraft.inventory.ICrafting;
+import net.minecraft.inventory.IInventory;
 import net.minecraft.inventory.ISidedInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -45,9 +48,12 @@ import java.util.Random;
 /**
  * @author TheTemportalist
  */
-public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergyHandler,
-		IAugmentable, IRotateableTile, IReconfigurableFacing, IReconfigurableSides, ISidedTexture,
-		IRedstoneControl, IAspectContainer, IEssentiaTransport, ITileInfoPacketHandler {
+public class TEDecomposer extends TileEntity implements ISidedInventory,
+		ITileInfoPacketHandler,
+		IEnergyHandler, IEnergyConnection,
+		IAugmentable, IRedstoneControl,
+		IRotateableTile, IReconfigurableFacing, IReconfigurableSides, ISidedTexture,
+		IAspectContainer, IEssentiaTransport {
 
 	public static final int hexagonProgressSteps = 13;
 
@@ -256,6 +262,23 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 								player.getCommandSenderName(), aspect
 						)
 				), player
+		);
+	}
+
+	public boolean isConnected(ForgeDirection dir) {
+		TileEntity tile = this.getWorldObj().getTileEntity(
+				this.xCoord + dir.offsetX,
+				this.yCoord + dir.offsetY,
+				this.zCoord + dir.offsetZ
+		);
+		return tile != null && (
+				(tile instanceof IInventory) || (
+						tile instanceof IEssentiaTransport &&
+								((IEssentiaTransport) tile).renderExtendedTube()
+				) || (
+						tile instanceof IEnergyConnection &&
+								((IEnergyConnection) tile).canConnectEnergy(dir.getOpposite())
+				) || (tile instanceof IItemDuct)
 		);
 	}
 
