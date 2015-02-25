@@ -38,7 +38,7 @@ public class BlockDecomposer extends Block implements ITileEntityProvider {
 		this.modid = modid;
 		this.name = name;
 		this.setBlockName(name);
-		GameRegistry.registerBlock(this, name);
+		GameRegistry.registerBlock(this, ItemBlockDecomposer.class, name);
 		GameRegistry.registerTileEntity(TEDecomposer.class, Scanner.MODID + ":" + "Decomposer");
 		this.isBlockContainer = true;
 
@@ -86,7 +86,6 @@ public class BlockDecomposer extends Block implements ITileEntityProvider {
 
 	public void setTierAndDir(World world, int x, int y, int z, int tier, ForgeDirection dir) {
 		world.setBlockMetadataWithNotify(x, y, z, this.getMetadata(tier, dir), 3);
-		//world.markBlockForUpdate(x, y, z);
 	}
 
 	public int getMetadata(int tier, ForgeDirection dir) {
@@ -143,7 +142,8 @@ public class BlockDecomposer extends Block implements ITileEntityProvider {
 				break;
 		}
 		this.setTierAndDir(world, x, y, z,
-				this.getTier(stack.getItemDamage()), ForgeDirection.getOrientation(convertedFacing)
+				this.getTier(stack.getItemDamage()),
+				ForgeDirection.getOrientation(convertedFacing).getOpposite()
 		);
 	}
 
@@ -157,13 +157,23 @@ public class BlockDecomposer extends Block implements ITileEntityProvider {
 	@Override
 	public void getSubBlocks(Item item, CreativeTabs tab, List list) {
 		for (int tier = 0; tier < 4; tier++)
-			((List<ItemStack>) list).add(this.createStackedBlock(tier * 4));
+			((List<ItemStack>) list).add(new ItemStack(
+					this, 1, this.getMetadata(tier, ForgeDirection.EAST)
+			));
 	}
 
 	@Override
 	public void breakBlock(World world, int x, int y, int z, Block block, int meta) {
 		super.breakBlock(world, x, y, z, block, meta);
+		TEDecomposer tile = (TEDecomposer) world.getTileEntity(x, y, z);
+		if (tile != null)
+			tile.dropAllInventory(world, x, y, z);
 		world.removeTileEntity(x, y, z);
+	}
+
+	@Override
+	public int damageDropped(int meta) {
+		return meta;
 	}
 
 	@Override

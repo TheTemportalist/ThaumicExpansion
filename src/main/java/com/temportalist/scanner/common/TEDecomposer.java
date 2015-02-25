@@ -4,11 +4,15 @@ import cofh.api.energy.EnergyStorage;
 import cofh.api.energy.IEnergyHandler;
 import cofh.api.energy.IEnergyStorage;
 import cofh.api.tileentity.*;
+import cofh.core.network.ITileInfoPacketHandler;
+import cofh.core.network.PacketCoFHBase;
 import cofh.core.network.PacketHandler;
+import cofh.core.network.PacketTileInfo;
 import cofh.lib.util.position.IRotateableTile;
 import cpw.mods.fml.common.FMLLog;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
+import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.inventory.Container;
@@ -22,6 +26,7 @@ import net.minecraft.network.Packet;
 import net.minecraft.network.play.server.S35PacketUpdateTileEntity;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.IIcon;
+import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 import thaumcraft.api.ThaumcraftApiHelper;
 import thaumcraft.api.aspects.Aspect;
@@ -42,7 +47,7 @@ import java.util.Random;
  */
 public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergyHandler,
 		IAugmentable, IRotateableTile, IReconfigurableFacing, IReconfigurableSides, ISidedTexture,
-		IRedstoneControl, IAspectContainer, IEssentiaTransport {
+		IRedstoneControl, IAspectContainer, IEssentiaTransport, ITileInfoPacketHandler {
 
 	public static final int hexagonProgressSteps = 13;
 
@@ -79,9 +84,8 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 					int energyRequired = this.getEnergyRequired((Integer) this.outputVars[0]);
 					if (this.energyStorage.getEnergyStored() >= energyRequired) {
 						AspectList aspectList = (AspectList) this.outputVars[1];
-						Aspect[] aspects = aspectList.getAspects();
-						for (int i = 0; i < aspects.length; i++) {
-							this.aspects.add(aspects[i], aspectList.getAmount(aspects[i]));
+						for (Aspect aspect : aspectList.getAspects()) {
+							this.aspects.add(aspect, aspectList.getAmount(aspect));
 						}
 						// decrement the current stack
 						if (Scanner.consumeItems &&
@@ -261,6 +265,50 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 		return 0 <= slot && slot < this.stacks.length;
 	}
 
+	public void dropAllInventory(World world, int x, int y, int z) {
+		for (ItemStack stack : this.stacks)
+			if (stack != null)
+				this.dropStack(world, x, y, z, stack);
+		for (ItemStack stack : this.augments)
+			if (stack != null)
+				this.dropStack(world, x, y, z, stack);
+		// todo essentia
+	}
+
+	private void dropStack(World world, int x, int y, int z, ItemStack stack) {
+		float xVar = world.rand.nextFloat() * 0.8F + 0.1F;
+		float yVar = world.rand.nextFloat() * 0.8F + 0.1F;
+		EntityItem entityitem;
+
+		for (float zVar = world.rand.nextFloat() * 0.8F + 0.1F;
+			 stack.stackSize > 0;
+			 world.spawnEntityInWorld(entityitem)) {
+			int stackSplitVar = world.rand.nextInt(21) + 10;
+
+			if (stackSplitVar > stack.stackSize) {
+				stackSplitVar = stack.stackSize;
+			}
+
+			stack.stackSize -= stackSplitVar;
+			entityitem = new EntityItem(
+					world, (double) ((float) x + xVar),
+					(double) ((float) y + yVar),
+					(double) ((float) z + zVar),
+					new ItemStack(stack.getItem(), stackSplitVar, stack.getItemDamage())
+			);
+			float motionVar = 0.05F;
+			entityitem.motionX = (double) ((float) world.rand.nextGaussian() * motionVar);
+			entityitem.motionY = (double) ((float) world.rand.nextGaussian() * motionVar + 0.2F);
+			entityitem.motionZ = (double) ((float) world.rand.nextGaussian() * motionVar);
+
+			if (stack.hasTagCompound()) {
+				entityitem.getEntityItem().setTagCompound(
+						(NBTTagCompound) stack.getTagCompound().copy()
+				);
+			}
+		}
+	}
+
 	@Override
 	public int getSizeInventory() {
 		return this.stacks.length;
@@ -391,9 +439,7 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 
 	@Override
 	public int receiveEnergy(ForgeDirection from, int maxReceive, boolean simulate) {
-		int ret = this.energyStorage.receiveEnergy(maxReceive, simulate);
-		this.markDirty();
-		return ret;
+		return this.energyStorage.receiveEnergy(maxReceive, simulate);
 	}
 
 	@Override
@@ -708,9 +754,48 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 	// data
 
 	public void sendGuiNetworkData(Container container, ICrafting player) {
+		PacketHandler.sendToAll(
+				new PacketTileInfo(this).
+						addString("ENERGY").
+						addInt(this.energyStorage.getEnergyStored())
+		);
 	}
 
 	public void receiveGuiNetworkData(int i, int j) {
+	}
+
+	@Override
+	public void handleTileInfoPacket(PacketCoFHBase packet, boolean isServer, EntityPlayer player) {
+		String type = packet.getString();
+		if (type.equals("ENERGY")) {
+			this.energyStorage.setEnergyStored(packet.getInt());
+		}
+		else if (type.equals("ADDASPECT")) {
+			int index = packet.getInt();
+			boolean takeSingleVAll = packet.getBool();
+			Aspect[] aspects = this.aspects.getAspectsSorted();
+			for (int i = 0; i < aspects.length; i++)
+				System.out.println(i + " : " + aspects[i].getName());
+			if (index < aspects.length) {
+				Aspect aspect = aspects[index];
+				int amount = this.aspects.getAmount(aspect);
+				if (takeSingleVAll && amount > 1)
+					this.aspects.reduce(aspect, 1);
+				else
+					this.aspects.remove(aspect);
+				if (player instanceof EntityPlayerMP) {
+					this.addAspect(
+							(EntityPlayerMP) player, aspect, (short) (takeSingleVAll ? 1 : amount)
+					);
+				}
+			}
+		}
+		else if (type.equals("COLUMN")) {
+			int nextCol = this.currentColumnOffset + packet.getInt();
+			if (nextCol >= 0 && nextCol < this.aspects.size() / 4) {
+				this.currentColumnOffset = nextCol;
+			}
+		}
 	}
 
 	private void sync() {
@@ -828,7 +913,7 @@ public class TEDecomposer extends TileEntity implements ISidedInventory, IEnergy
 			));
 		}
 
-		this.aspects.readFromNBT(tagCom, "aspects");
+		// todo this.aspects.readFromNBT(tagCom, "aspects");
 
 		this.currentControl = ControlMode.values()[tagCom.getInteger("controlMode")];
 		this.powered = tagCom.getBoolean("powered");

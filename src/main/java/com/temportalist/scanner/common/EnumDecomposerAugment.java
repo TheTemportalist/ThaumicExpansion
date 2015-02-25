@@ -14,8 +14,9 @@ public enum EnumDecomposerAugment {
 	SPACE_TIME_FLUX(130, 8, 20, new double[] { .70, 1, 1, 1 }),
 	// keeps items in, and can only hold 1 at a time
 	ITEM_KEEPER(Scanner.MODID + ":augment-itemKeeper:0"),
-	THAUMIC_ADJUSTER(Scanner.MODID + ":augment-thaulmicAdjuster:0", 1, 1,
-			new double[] { 1, 1, 1, 1.1 });
+	THAUMIC_ADJUSTER(Scanner.MODID + ":augment-thaulmicAdjuster:0",
+			1, 1, new double[] { 1, 1, 1, 1.1 }
+	);
 
 	private final String stackName;
 

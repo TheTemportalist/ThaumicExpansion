@@ -4,9 +4,11 @@ import cofh.core.gui.GuiBaseAdv;
 import cofh.core.gui.element.TabAugment;
 import cofh.core.gui.element.TabConfiguration;
 import cofh.core.gui.element.TabRedstone;
+import cofh.core.network.PacketCoFHBase;
 import cofh.core.network.PacketHandler;
+import cofh.core.network.PacketTileInfo;
+import cofh.lib.gui.element.ElementButton;
 import cofh.lib.gui.element.ElementEnergyStored;
-import com.temportalist.scanner.common.PacketRecieveAspect;
 import com.temportalist.scanner.common.Scanner;
 import com.temportalist.scanner.common.TEDecomposer;
 import com.temportalist.scanner.common.inventory.ContainerDecomposer;
@@ -45,7 +47,7 @@ public class GuiDecomposer extends GuiBaseAdv {
 		super.initGui();
 
 		this.addElement(new ElementEnergyStored(
-				this, 8, 8, this.container().tile.getEnergyStorage()
+				this, 14, 10, this.container().tile.getEnergyStorage()
 		));
 		this.addTab(new TabAugment(this, this.container()));
 		this.addTab(new TabConfiguration(this, this.container().tile));
@@ -54,7 +56,19 @@ public class GuiDecomposer extends GuiBaseAdv {
 		int centerX = (this.width / 2);
 		int centerY = (this.height / 2);
 
-		this.constructBoundsOfAspects(centerX + 28, centerY - 74, 3, 4);
+		// 119 x 9
+		this.constructBoundsOfAspects(centerX + 31, centerY - 74, 3, 4);
+
+		this.addElement(new ElementButton(this,
+				119, 73, "PreviousColumn",
+				180, 1, 180, 1, 24, 8,
+				GuiDecomposer.background.toString()
+		));
+		this.addElement(new ElementButton(this,
+				143, 73, "NextColumn",
+				204, 1, 204, 1, 24, 8,
+				GuiDecomposer.background.toString()
+		));
 
 	}
 
@@ -62,10 +76,10 @@ public class GuiDecomposer extends GuiBaseAdv {
 
 	private void constructBoundsOfAspects(int startX, int startY, int qX, int qY) {
 		this.aspectSlots = new int[qX * qY][4];
-		int slotWidth = 16, slotHeight = 16, slotBreakX = 2, slotBreakY = 2;
+		int slotWidth = 16, slotHeight = 16, slotBreakX = 0, slotBreakY = 0;
 		for (int i = 0; i < this.aspectSlots.length; i++) {
-			int x = startX + (i / qX) * (slotWidth + slotBreakX);
-			int y = startY + (i % qX) * (slotHeight + slotBreakY);
+			int x = startX + (i / qY) * (slotWidth + slotBreakX);
+			int y = startY + (i % qY) * (slotHeight + slotBreakY);
 			this.aspectSlots[i] = new int[] { x, y, slotWidth, slotHeight };
 		}
 	}
@@ -74,15 +88,35 @@ public class GuiDecomposer extends GuiBaseAdv {
 	protected void mouseClicked(int mouseX, int mouseY, int mouseButton) {
 		super.mouseClicked(mouseX, mouseY, mouseButton);
 		// -1 released, 0 left, 1 right, 2 center
-		if (mouseButton == 0 || mouseButton == 2) {
+		if (mouseButton == 0 || mouseButton == 1) {
 			for (int i = 0; i < this.aspectSlots.length; i++) {
 				if (this.isMouseOverArea(mouseX, mouseY, this.aspectSlots[i])) {
-					PacketHandler.sendToServer(new PacketRecieveAspect(
-							this.container().tile, i + this.getAspectOffset(), mouseButton == 0
-					));
+					//FMLLog.info((i + this.getAspectOffset()) + "");
+					PacketCoFHBase packet = new PacketTileInfo(
+							this.container().tile
+					).addString("ADDASPECT").addInt(
+							i + this.getAspectOffset()
+					).addBool(mouseButton == 0);
+					PacketHandler.sendToServer(packet);
+					PacketHandler.sendToAll(packet);
 					break;
 				}
 			}
+		}
+	}
+
+	@Override
+	public void handleElementButtonClick(String buttonName, int mouseButton) {
+		PacketCoFHBase packet = null;
+		if (buttonName.equals("PreviousColumn")) {
+			packet = new PacketTileInfo(this.container().tile).addString("COLUMN").addInt(-1);
+		}
+		else if (buttonName.equals("NextColumn")) {
+			packet = new PacketTileInfo(this.container().tile).addString("COLUMN").addInt(1);
+		}
+		if (packet != null) {
+			PacketHandler.sendToServer(packet);
+			PacketHandler.sendToAll(packet);
 		}
 	}
 
@@ -107,12 +141,11 @@ public class GuiDecomposer extends GuiBaseAdv {
 			int progress = this.container().tile.getProgress();
 			this.bindTexture(GuiDecomposer.hexagon);
 			Gui.func_146110_a(
-					centerX - 59, centerY - 75, 0, progress * 54, 64, 54,
+					centerX - 54, centerY - 73, 0, progress * 54, 64, 54,
 					64, GuiDecomposer.hexagonHeight
 			);
 		}
 
-		// aspect 0,0 is 116x9
 		int indexOffset = this.getAspectOffset();
 		AspectList aspectList = this.container().tile.getAspects();
 		Aspect[] aspects = aspectList.getAspectsSorted();
