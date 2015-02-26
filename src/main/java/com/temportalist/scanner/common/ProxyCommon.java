@@ -1,6 +1,7 @@
 package com.temportalist.scanner.common;
 
-import com.temportalist.scanner.common.inventory.ContainerDecomposer;
+import com.temportalist.scanner.common.inventory.ContainerThaumicAnalyzer;
+import com.temportalist.scanner.common.tile.TEThaumicAnalyzer;
 import cpw.mods.fml.common.network.IGuiHandler;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.tileentity.TileEntity;
@@ -19,8 +20,8 @@ public class ProxyCommon implements IGuiHandler {
 			int y, int z) {
 		TileEntity tile = world.getTileEntity(x, y, z);
 		if (tile != null) {
-			if (ID == 0 && tile instanceof TEDecomposer) {
-				return new ContainerDecomposer((TEDecomposer) tile, player.inventory);
+			if (ID == 0 && tile instanceof TEThaumicAnalyzer) {
+				return new ContainerThaumicAnalyzer((TEThaumicAnalyzer) tile, player.inventory);
 			}
 		}
 		return null;

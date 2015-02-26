@@ -2,8 +2,8 @@ package com.temportalist.scanner.client;
 
 import com.temportalist.scanner.client.gui.GuiDecomposer;
 import com.temportalist.scanner.common.ProxyCommon;
-import com.temportalist.scanner.common.TEDecomposer;
-import com.temportalist.scanner.common.inventory.ContainerDecomposer;
+import com.temportalist.scanner.common.inventory.ContainerThaumicAnalyzer;
+import com.temportalist.scanner.common.tile.TEThaumicAnalyzer;
 import cpw.mods.fml.client.registry.RenderingRegistry;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.tileentity.TileEntity;
@@ -24,9 +24,10 @@ public class ProxyClient extends ProxyCommon {
 			int y, int z) {
 		TileEntity tile = world.getTileEntity(x, y, z);
 		if (tile != null) {
-			if (ID == 0 && tile instanceof TEDecomposer) {
+			if (ID == 0 && tile instanceof TEThaumicAnalyzer) {
 				return new GuiDecomposer(
-						(ContainerDecomposer) this.getServerGuiElement(ID, player, world, x, y, z)
+						(ContainerThaumicAnalyzer) this
+								.getServerGuiElement(ID, player, world, x, y, z)
 				);
 			}
 		}

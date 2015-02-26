@@ -1,11 +1,10 @@
 package com.temportalist.scanner.client;
 
-import com.temportalist.scanner.common.BlockDecomposer;
-import com.temportalist.scanner.common.EnumDecomposerSide;
-import com.temportalist.scanner.common.TEDecomposer;
+import com.temportalist.scanner.common.block.BlockThaumicAnalyzer;
+import com.temportalist.scanner.common.lib.EnumSideTA;
+import com.temportalist.scanner.common.tile.TEThaumicAnalyzer;
 import cpw.mods.fml.client.registry.ISimpleBlockRenderingHandler;
 import cpw.mods.fml.common.FMLLog;
-import net.minecraft.block.Block;
 import net.minecraft.client.renderer.RenderBlocks;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.util.IIcon;
@@ -28,7 +27,8 @@ public class ThermalHandler implements ISimpleBlockRenderingHandler {
 		return true;
 	}
 
-	private void renderFace(RenderBlocks renderer, ForgeDirection dir, Block block, int x, int y,
+	private void renderFace(RenderBlocks renderer, ForgeDirection dir,
+			net.minecraft.block.Block block, int x, int y,
 			int z, IIcon icon) {
 		if (icon == null)
 			FMLLog.info("[Scanner] Error null icon");
@@ -59,7 +59,7 @@ public class ThermalHandler implements ISimpleBlockRenderingHandler {
 	}
 
 	@Override
-	public void renderInventoryBlock(Block block, int metadata, int modelId,
+	public void renderInventoryBlock(net.minecraft.block.Block block, int metadata, int modelId,
 			RenderBlocks renderer) {
 		Tessellator tess = Tessellator.instance;
 
@@ -73,7 +73,7 @@ public class ThermalHandler implements ISimpleBlockRenderingHandler {
 				faceDir
 		);
 		*/
-		ForgeDirection faceDir = ((BlockDecomposer) block).getDirection(metadata);
+		ForgeDirection faceDir = ((BlockThaumicAnalyzer) block).getDirection(metadata);
 		for (int i = 0; i < ForgeDirection.VALID_DIRECTIONS.length; i++) {
 			ForgeDirection dir = ForgeDirection.VALID_DIRECTIONS[i];
 			tess.startDrawingQuads();
@@ -81,7 +81,7 @@ public class ThermalHandler implements ISimpleBlockRenderingHandler {
 			this.renderFace(renderer, dir, block, 0, 0, 0, block.getIcon(i, metadata));
 			if (dir != faceDir)
 				this.renderFace(renderer, dir, block, 0, 0, 0,
-						EnumDecomposerSide.NONE.getIcon(dir.ordinal())
+						EnumSideTA.NONE.getIcon(dir.ordinal())
 				);
 			tess.draw();
 		}
@@ -91,14 +91,15 @@ public class ThermalHandler implements ISimpleBlockRenderingHandler {
 	}
 
 	@Override
-	public boolean renderWorldBlock(IBlockAccess world, int x, int y, int z, Block block,
+	public boolean renderWorldBlock(IBlockAccess world, int x, int y, int z,
+			net.minecraft.block.Block block,
 			int modelId, RenderBlocks renderer) {
 		int rawColors = block.colorMultiplier(world, x, y, z);
 		float blockColorRed = (rawColors >> 16 & 0xff) / 255F;
 		float blockColorGreen = (rawColors >> 8 & 0xff) / 255F;
 		float blockColorBlue = (rawColors & 0xff) / 255F;
 
-		TEDecomposer tile = (TEDecomposer) world.getTileEntity(x, y, z);
+		TEThaumicAnalyzer tile = (TEThaumicAnalyzer) world.getTileEntity(x, y, z);
 
 		renderer.enableAO = false;
 		Tessellator tess = Tessellator.instance;
@@ -122,7 +123,7 @@ public class ThermalHandler implements ISimpleBlockRenderingHandler {
 		float var24 = frontWeight;
 		float var25 = sideWeight;
 
-		ForgeDirection faceDir = ((BlockDecomposer) block)
+		ForgeDirection faceDir = ((BlockThaumicAnalyzer) block)
 				.getDirection(world.getBlockMetadata(x, y, z));
 
 		for (int i = 0; i < ForgeDirection.VALID_DIRECTIONS.length; i++) {

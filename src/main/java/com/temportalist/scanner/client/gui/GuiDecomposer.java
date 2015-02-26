@@ -9,9 +9,9 @@ import cofh.core.network.PacketHandler;
 import cofh.core.network.PacketTileInfo;
 import cofh.lib.gui.element.ElementButton;
 import cofh.lib.gui.element.ElementEnergyStored;
-import com.temportalist.scanner.common.Scanner;
-import com.temportalist.scanner.common.TEDecomposer;
-import com.temportalist.scanner.common.inventory.ContainerDecomposer;
+import com.temportalist.scanner.common.TEC;
+import com.temportalist.scanner.common.inventory.ContainerThaumicAnalyzer;
+import com.temportalist.scanner.common.tile.TEThaumicAnalyzer;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.inventory.Slot;
 import net.minecraft.util.ResourceLocation;
@@ -28,18 +28,18 @@ import thaumcraft.client.lib.UtilsFX;
 public class GuiDecomposer extends GuiBaseAdv {
 
 	private static final ResourceLocation
-			background = new ResourceLocation(Scanner.MODID, "textures/gui/decomposer.png"),
-			hexagon = new ResourceLocation(Scanner.MODID, "textures/gui/progress.png");
-	private static final int hexagonHeight = TEDecomposer.hexagonProgressSteps * 54;
+			background = new ResourceLocation(TEC.MODID, "textures/gui/thaumicAnalyzer.png"),
+			hexagon = new ResourceLocation(TEC.MODID, "textures/gui/progress.png");
+	private static final int hexagonHeight = TEThaumicAnalyzer.hexagonProgressSteps * 54;
 
-	public GuiDecomposer(ContainerDecomposer container) {
+	public GuiDecomposer(ContainerThaumicAnalyzer container) {
 		super(container, GuiDecomposer.background);
 		this.xSize = 176;
-		this.ySize = 166;
+		this.ySize = 186;
 	}
 
-	private ContainerDecomposer container() {
-		return (ContainerDecomposer) this.inventorySlots;
+	private ContainerThaumicAnalyzer container() {
+		return (ContainerThaumicAnalyzer) this.inventorySlots;
 	}
 
 	@Override

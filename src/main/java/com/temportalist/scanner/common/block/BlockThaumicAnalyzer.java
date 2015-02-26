@@ -1,9 +1,12 @@
-package com.temportalist.scanner.common;
+package com.temportalist.scanner.common.block;
 
+import com.temportalist.scanner.common.TEC;
+import com.temportalist.scanner.common.item.ItemBlockTA;
+import com.temportalist.scanner.common.lib.EnumSideTA;
+import com.temportalist.scanner.common.tile.TEThaumicAnalyzer;
 import cpw.mods.fml.common.registry.GameRegistry;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
-import net.minecraft.block.Block;
 import net.minecraft.block.ITileEntityProvider;
 import net.minecraft.block.material.Material;
 import net.minecraft.client.renderer.texture.IIconRegister;
@@ -29,17 +32,17 @@ import java.util.List;
 /**
  * @author TheTemportalist
  */
-public class BlockDecomposer extends Block implements ITileEntityProvider {
+public class BlockThaumicAnalyzer extends net.minecraft.block.Block implements ITileEntityProvider {
 
 	private final String modid, name;
 
-	public BlockDecomposer(Material mat, String modid, String name) {
+	public BlockThaumicAnalyzer(Material mat, String modid, String name) {
 		super(mat);
 		this.modid = modid;
 		this.name = name;
 		this.setBlockName(name);
-		GameRegistry.registerBlock(this, ItemBlockDecomposer.class, name);
-		GameRegistry.registerTileEntity(TEDecomposer.class, Scanner.MODID + ":" + "Decomposer");
+		GameRegistry.registerBlock(this, ItemBlockTA.class, name);
+		GameRegistry.registerTileEntity(TEThaumicAnalyzer.class, TEC.MODID + ":" + "Decomposer");
 		this.isBlockContainer = true;
 
 	}
@@ -70,8 +73,8 @@ public class BlockDecomposer extends Block implements ITileEntityProvider {
 				this.icons[side][tier] = reg.registerIcon(base + "/side" + side + "/" + tier);
 			}
 		}
-		for (int i = 0; i < EnumDecomposerSide.values().length; i++)
-			EnumDecomposerSide.values()[i].registerIcon(reg, base);
+		for (int i = 0; i < EnumSideTA.values().length; i++)
+			EnumSideTA.values()[i].registerIcon(reg, base);
 	}
 
 	@SideOnly(Side.CLIENT)
@@ -116,7 +119,7 @@ public class BlockDecomposer extends Block implements ITileEntityProvider {
 
 	@Override
 	public TileEntity createNewTileEntity(World world, int metadata) {
-		return new TEDecomposer();
+		return new TEThaumicAnalyzer();
 	}
 
 	@Override
@@ -163,9 +166,10 @@ public class BlockDecomposer extends Block implements ITileEntityProvider {
 	}
 
 	@Override
-	public void breakBlock(World world, int x, int y, int z, Block block, int meta) {
+	public void breakBlock(World world, int x, int y, int z, net.minecraft.block.Block block,
+			int meta) {
 		super.breakBlock(world, x, y, z, block, meta);
-		TEDecomposer tile = (TEDecomposer) world.getTileEntity(x, y, z);
+		TEThaumicAnalyzer tile = (TEThaumicAnalyzer) world.getTileEntity(x, y, z);
 		if (tile != null)
 			tile.dropAllInventory(world, x, y, z);
 		world.removeTileEntity(x, y, z);
@@ -198,7 +202,7 @@ public class BlockDecomposer extends Block implements ITileEntityProvider {
 			}
 		}
 		*/
-		player.openGui(Scanner.instance, 0, world, x, y, z);
+		player.openGui(TEC.instance, 0, world, x, y, z);
 
 		return true;
 	}

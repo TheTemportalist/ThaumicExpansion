@@ -1,4 +1,4 @@
-package com.temportalist.scanner.common;
+package com.temportalist.scanner.common.item;
 
 import cofh.api.item.IAugmentItem;
 import com.google.common.collect.Sets;

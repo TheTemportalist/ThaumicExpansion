@@ -1,4 +1,4 @@
-package com.temportalist.scanner.common;
+package com.temportalist.scanner.common.packet;
 
 import cofh.core.network.PacketCoFHBase;
 import cofh.core.network.PacketHandler;

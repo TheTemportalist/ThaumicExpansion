@@ -1,7 +1,8 @@
-package com.temportalist.scanner.common;
+package com.temportalist.scanner.common.packet;
 
 import cofh.core.network.PacketCoFHBase;
 import cofh.core.network.PacketHandler;
+import com.temportalist.scanner.common.tile.TEThaumicAnalyzer;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 
@@ -17,7 +18,7 @@ public class PacketRecieveAspect extends PacketCoFHBase {
 	public PacketRecieveAspect() {
 	}
 
-	public PacketRecieveAspect(TEDecomposer tile, int aspectIndex, boolean takeAllVsOne) {
+	public PacketRecieveAspect(TEThaumicAnalyzer tile, int aspectIndex, boolean takeAllVsOne) {
 		this.addCoords(tile);
 		this.addInt(aspectIndex);
 		this.addBool(takeAllVsOne);
@@ -28,7 +29,7 @@ public class PacketRecieveAspect extends PacketCoFHBase {
 		int[] tileCoords = this.getCoords();
 		int aspectIndex = this.getInt();
 		boolean takeAllVsOne = this.getBool();
-		TEDecomposer tile = (TEDecomposer) player.getEntityWorld().getTileEntity(
+		TEThaumicAnalyzer tile = (TEThaumicAnalyzer) player.getEntityWorld().getTileEntity(
 				tileCoords[0], tileCoords[1], tileCoords[2]
 		);
 		if (player instanceof EntityPlayerMP)

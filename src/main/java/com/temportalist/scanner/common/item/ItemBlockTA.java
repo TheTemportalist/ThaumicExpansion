@@ -1,4 +1,4 @@
-package com.temportalist.scanner.common;
+package com.temportalist.scanner.common.item;
 
 import cofh.lib.util.helpers.StringHelper;
 import net.minecraft.block.Block;
@@ -8,9 +8,9 @@ import net.minecraft.item.ItemStack;
 /**
  * @author TheTemportalist
  */
-public class ItemBlockDecomposer extends ItemBlock {
+public class ItemBlockTA extends ItemBlock {
 
-	public ItemBlockDecomposer(Block block) {
+	public ItemBlockTA(Block block) {
 		super(block);
 		this.setHasSubtypes(true);
 	}

@@ -1,4 +1,4 @@
-package com.temportalist.scanner.common;
+package com.temportalist.scanner.common.tile;
 
 import cofh.api.energy.EnergyStorage;
 import cofh.api.energy.IEnergyConnection;
@@ -11,6 +11,12 @@ import cofh.core.network.PacketCoFHBase;
 import cofh.core.network.PacketHandler;
 import cofh.core.network.PacketTileInfo;
 import cofh.lib.util.position.IRotateableTile;
+import com.temportalist.scanner.common.TEC;
+import com.temportalist.scanner.common.block.BlockThaumicAnalyzer;
+import com.temportalist.scanner.common.lib.EnumAugmentTA;
+import com.temportalist.scanner.common.lib.EnumSideTA;
+import com.temportalist.scanner.common.lib.IOperation;
+import com.temportalist.scanner.common.lib.OperationAnalyzer;
 import cpw.mods.fml.common.FMLLog;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -40,15 +46,12 @@ import thaumcraft.common.Thaumcraft;
 import thaumcraft.common.lib.network.playerdata.PacketAspectPool;
 import thaumcraft.common.lib.research.ResearchManager;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 
 /**
  * @author TheTemportalist
  */
-public class TEDecomposer extends TileEntity implements ISidedInventory,
+public class TEThaumicAnalyzer extends TileEntity implements ISidedInventory,
 		ITileInfoPacketHandler,
 		IEnergyHandler, IEnergyConnection,
 		IAugmentable, IRedstoneControl,
@@ -57,36 +60,93 @@ public class TEDecomposer extends TileEntity implements ISidedInventory,
 
 	public static final int hexagonProgressSteps = 13;
 
-	protected EnergyStorage energyStorage = new EnergyStorage(Scanner.maxEnergyStorage);
+	protected EnergyStorage energyStorage = new EnergyStorage(TEC.maxEnergyStorage);
 	private ItemStack[] stacks = new ItemStack[2];
 	private ItemStack[] augments = new ItemStack[3];
-	private List<EnumDecomposerAugment> augmentList = new ArrayList<EnumDecomposerAugment>();
+	private List<EnumAugmentTA> augmentList = new ArrayList<EnumAugmentTA>();
 	private AspectList aspects = new AspectList();
-	private Object[] outputVars = null;
-	private int currentTimeMax = -1;
-	private int timeUntilNextDecompose = -1;
 	private int currentColumnOffset = 0;
 
-	EnumDecomposerSide[] sideTypes = new EnumDecomposerSide[6];
+	private IOperation currentOperation = null;
+
+	private Object[] outputVars = null;
+	private int currentMaxTicksForOperation = -1;
+	private int ticksTillNextOperation = -1;
+
+	EnumSideTA[] sideTypes = new EnumSideTA[6];
 	ControlMode currentControl = ControlMode.DISABLED;
 	boolean powered = false;
 
+	// todo uuid
+	private final UUID uuid = null;
+
 	@Override
 	public void updateEntity() {
+		if (this.augmentList.contains(EnumAugmentTA.DECOMPOSER)) {
+			if (this.currentOperation instanceof OperationAnalyzer)
+				this.currentOperation = null;
+			this.decomposerUpdate();
+		}
+		else {
+			//if (this.currentOperation instanceof )
+			this.analyzerUpdate();
+		}
+	}
+
+	private void analyzerUpdate() {
+		// todo time and energy
+		if (this.currentOperation == null)
+			this.currentOperation = new OperationAnalyzer(10, 20);
 		if (this.canOperate() && this.stacks[0] != null) {
-			if (this.timeUntilNextDecompose < 0) {
+			if (!this.currentOperation.isRunning() &&
+					this.currentOperation.canRun(this.energyStorage.getEnergyStored(), uuid)) {
+				this.currentOperation.start();
+			}
+			else {
+				if (!this.currentOperation.canRun(this.energyStorage.getEnergyStored(), uuid)) {
+					this.currentOperation.reset();
+				}
+				else {
+					this.currentOperation.tick();
+					if (this.currentOperation.areTicksReady()) {
+						ItemStack output = (ItemStack) this.currentOperation.getOutput(
+								this.getWorldObj(), this.stacks[0], TEC.getPlayerOnline(uuid)
+						);
+
+						// todo move output to next slot
+
+						int amountToConsume = this.currentOperation.getAmountToConsume(
+								this.stacks[0]
+						);
+						if (amountToConsume > 0)
+							this.decrStackSize(0, amountToConsume);
+
+						int[] costs = (int[]) this.currentOperation.getCosts();
+						this.energyStorage.extractEnergy(costs[0], false);
+
+						this.currentOperation.reset();
+						this.markDirty();
+					}
+				}
+			}
+		}
+	}
+
+	private void decomposerUpdate() {
+		if (this.canOperate() && this.stacks[0] != null) {
+			if (this.ticksTillNextOperation < 0) {
 				// Int energy, AspectList filteredList, Int time
 				this.outputVars = this.calculateAndFilter(this.stacks[0]);
 				int energyRequired = this.getEnergyRequired((Integer) this.outputVars[0]);
 				if (this.energyStorage.getEnergyStored() >= energyRequired) {
-					this.currentTimeMax = this.getAdjustedTime(
+					this.currentMaxTicksForOperation = this.getAdjustedTime(
 							(Integer) this.outputVars[2] * 20
 					); // times 20 for ticks
-					this.timeUntilNextDecompose = 0;
+					this.ticksTillNextOperation = 0;
 				}
 			}
-			else if (this.currentTimeMax > -1) {
-				if (this.timeUntilNextDecompose >= this.currentTimeMax) {
+			else if (this.currentMaxTicksForOperation > -1) {
+				if (this.ticksTillNextOperation >= this.currentMaxTicksForOperation) {
 					int energyRequired = this.getEnergyRequired((Integer) this.outputVars[0]);
 					if (this.energyStorage.getEnergyStored() >= energyRequired) {
 						AspectList aspectList = (AspectList) this.outputVars[1];
@@ -94,8 +154,8 @@ public class TEDecomposer extends TileEntity implements ISidedInventory,
 							this.aspects.add(aspect, aspectList.getAmount(aspect));
 						}
 						// decrement the current stack
-						if (Scanner.consumeItems &&
-								!this.augmentList.contains(EnumDecomposerAugment.ITEM_KEEPER)) {
+						if (TEC.consumeItems &&
+								!this.augmentList.contains(EnumAugmentTA.ITEM_KEEPER)) {
 							this.decrStackSize(0, 1);
 						}
 						// decrease the energy
@@ -104,13 +164,13 @@ public class TEDecomposer extends TileEntity implements ISidedInventory,
 					this.outputVars = null;
 					this.resetTimer();
 				}
-				else if (this.timeUntilNextDecompose >= 0) {
-					this.timeUntilNextDecompose += 1;
+				else if (this.ticksTillNextOperation >= 0) {
+					this.ticksTillNextOperation += 1;
 				}
 			}
 		}
 		else {
-			if (this.timeUntilNextDecompose > -1) {
+			if (this.ticksTillNextOperation > -1) {
 				this.resetTimer();
 			}
 		}
@@ -132,10 +192,10 @@ public class TEDecomposer extends TileEntity implements ISidedInventory,
 		for (int i = 0; i < aspects.length; i++) {
 			Aspect aspect = aspects[i];
 			// todo wish Azanor had a Aspect.getTier method
-			int tier = Scanner.aspectTiers.containsKey(aspect) ?
-					Scanner.aspectTiers.get(aspect) :
+			int tier = TEC.aspectTiers.containsKey(aspect) ?
+					TEC.aspectTiers.get(aspect) :
 					3;
-			int[] stats = Scanner.decompositionStats.get(tier);
+			int[] stats = TEC.decompositionStats.get(tier);
 			energy += stats[0];
 			time += stats[1];
 		}
@@ -150,8 +210,8 @@ public class TEDecomposer extends TileEntity implements ISidedInventory,
 		double genericChance = this.getMachineChance(machineTier);
 		for (Aspect aspect : aspects) {
 			int amount = aspectList.getAmount(aspect);
-			int complexity = Scanner.aspectTiers.containsKey(aspect) ?
-					Scanner.aspectTiers.get(aspect) :
+			int complexity = TEC.aspectTiers.containsKey(aspect) ?
+					TEC.aspectTiers.get(aspect) :
 					3;
 			double complexityChance = this.getComplexityChance(machineTier, complexity);
 			int resultAmount = 0;
@@ -167,34 +227,34 @@ public class TEDecomposer extends TileEntity implements ISidedInventory,
 	}
 
 	private double getComplexityChance(int machineTier, int aspectComplexity) {
-		double base = Scanner.complexityTierChance[machineTier][aspectComplexity - 1];
-		for (EnumDecomposerAugment augment : this.augmentList) {
+		double base = TEC.complexityTierChance[machineTier][aspectComplexity - 1];
+		for (EnumAugmentTA augment : this.augmentList) {
 			base *= augment.getOutputMultipliers()[aspectComplexity];
 		}
 		return base;
 	}
 
 	private double getMachineChance(int machineTier) {
-		double base = Scanner.tieredChance[machineTier];
-		for (EnumDecomposerAugment augment : this.augmentList) {
+		double base = TEC.tieredChance[machineTier];
+		for (EnumAugmentTA augment : this.augmentList) {
 			base *= augment.getOutputMultipliers()[1];
 		}
 		return base;
 	}
 
 	private void resetTimer() {
-		this.currentTimeMax = this.timeUntilNextDecompose = -1;
+		this.currentMaxTicksForOperation = this.ticksTillNextOperation = -1;
 	}
 
 	private int getAdjustedTime(int baseTimeInTicks) {
-		for (EnumDecomposerAugment augment : this.augmentList) {
+		for (EnumAugmentTA augment : this.augmentList) {
 			baseTimeInTicks *= augment.getTimeMultiplier();
 		}
 		return baseTimeInTicks;
 	}
 
 	private int getEnergyRequired(int baseRequirement) {
-		for (EnumDecomposerAugment augment : this.augmentList) {
+		for (EnumAugmentTA augment : this.augmentList) {
 			baseRequirement *= augment.getEnergyRequirementMultiplier();
 		}
 		return baseRequirement;
@@ -205,27 +265,27 @@ public class TEDecomposer extends TileEntity implements ISidedInventory,
 		int side = dir.ordinal();
 		IIcon[] icons = new IIcon[2];
 		icons[0] = this.getBlock().getIcon(side, this.getBlockMetadata());
-		if (dir.ordinal() != ((BlockDecomposer) this.getBlock()).getDirection(
+		if (dir.ordinal() != ((BlockThaumicAnalyzer) this.getBlock()).getDirection(
 				this.getBlockMetadata()
 		).ordinal())
 			icons[1] = this.sideTypes[side] != null ?
 					this.sideTypes[side].getIcon(side) :
-					EnumDecomposerSide.NONE.getIcon(side);
+					EnumSideTA.NONE.getIcon(side);
 		return icons;
 	}
 
-	public BlockDecomposer getBlock() {
-		return (BlockDecomposer) this.getBlockType();
+	public BlockThaumicAnalyzer getBlock() {
+		return (BlockThaumicAnalyzer) this.getBlockType();
 	}
 
 	public boolean isProcessing() {
-		return this.timeUntilNextDecompose > -1;
+		return this.ticksTillNextOperation > -1;
 	}
 
 	public int getProgress() {
 		return (int) (
-				((double) this.timeUntilNextDecompose / (double) this.currentTimeMax)
-						* TEDecomposer.hexagonProgressSteps
+				((double) this.ticksTillNextOperation / (double) this.currentMaxTicksForOperation)
+						* TEThaumicAnalyzer.hexagonProgressSteps
 		);
 	}
 
@@ -400,14 +460,14 @@ public class TEDecomposer extends TileEntity implements ISidedInventory,
 	}
 
 	private boolean canInput_Item(int side) {
-		return this.sideTypes[side] == EnumDecomposerSide.INPUT_ITEM ||
-				this.sideTypes[side] == EnumDecomposerSide.IO;
+		return this.sideTypes[side] == EnumSideTA.INPUT_ITEM ||
+				this.sideTypes[side] == EnumSideTA.IO;
 	}
 
 	private boolean canOutput_Item(int side) {
-		return this.sideTypes[side] == EnumDecomposerSide.IO ||
-				this.sideTypes[side] == EnumDecomposerSide.OUTPUT ||
-				this.sideTypes[side] == EnumDecomposerSide.OUTPUT_ITEM;
+		return this.sideTypes[side] == EnumSideTA.IO ||
+				this.sideTypes[side] == EnumSideTA.OUTPUT ||
+				this.sideTypes[side] == EnumSideTA.OUTPUT_ITEM;
 	}
 
 	@Override
@@ -485,9 +545,9 @@ public class TEDecomposer extends TileEntity implements ISidedInventory,
 		for (int slot = 0; slot < this.augments.length; slot++) {
 			if (this.augments[slot] != null) {
 				//FMLLog.info(this.augments[slot].getDisplayName());
-				FMLLog.info(Scanner.getFullName(this.augments[slot]));
-				EnumDecomposerAugment augmentEnum = EnumDecomposerAugment.getByName(
-						Scanner.getFullName(this.augments[slot])
+				FMLLog.info(TEC.getFullName(this.augments[slot]));
+				EnumAugmentTA augmentEnum = EnumAugmentTA.getByName(
+						TEC.getFullName(this.augments[slot])
 				);
 				if (augmentEnum != null)
 					this.augmentList.add(augmentEnum);
@@ -595,8 +655,12 @@ public class TEDecomposer extends TileEntity implements ISidedInventory,
 	@Override
 	public boolean setSide(int side, int index) {
 		if (!this.isSideFront(side)) {
-			this.sideTypes[side] = EnumDecomposerSide.values()[index];
-			this.sync();
+			this.sideTypes[side] = EnumSideTA.values()[index];
+			PacketHandler.sendToServer(
+					new PacketTileInfo(this).
+							addString("SIDE").addInt(side).addInt(this.sideTypes[side].ordinal())
+			);
+			this.worldObj.markBlockForUpdate(this.xCoord, this.yCoord, this.zCoord);
 			return true;
 		}
 		return false;
@@ -605,13 +669,13 @@ public class TEDecomposer extends TileEntity implements ISidedInventory,
 	@Override
 	public boolean resetSides() {
 		for (int side = 0; side < this.sideTypes.length; side++)
-			this.sideTypes[side] = EnumDecomposerSide.NONE;
+			this.sideTypes[side] = EnumSideTA.NONE;
 		return true;
 	}
 
 	@Override
 	public int getNumConfig(int side) {
-		return !this.isSideFront(side) ? EnumDecomposerSide.values().length : 0;
+		return !this.isSideFront(side) ? EnumSideTA.values().length : 0;
 	}
 
 	@Override
@@ -624,7 +688,10 @@ public class TEDecomposer extends TileEntity implements ISidedInventory,
 	@Override
 	public void setControl(ControlMode controlMode) {
 		this.currentControl = controlMode;
-		this.sync();
+		PacketHandler.sendToServer(
+				new PacketTileInfo(this).
+						addString("CONTROLMODE").addInt(this.currentControl.ordinal())
+		);
 	}
 
 	@Override
@@ -717,11 +784,11 @@ public class TEDecomposer extends TileEntity implements ISidedInventory,
 
 	@Override
 	public boolean canOutputTo(ForgeDirection dir) {
-		EnumDecomposerSide side = this.sideTypes[dir.ordinal()];
-		return side == EnumDecomposerSide.IO
-				|| side == EnumDecomposerSide.OUTPUT
-				|| side == EnumDecomposerSide.OUTPUT_THAUM
-				|| side == EnumDecomposerSide.OUTPUT_ESSENTIA;
+		EnumSideTA side = this.sideTypes[dir.ordinal()];
+		return side == EnumSideTA.IO
+				|| side == EnumSideTA.OUTPUT
+				|| side == EnumSideTA.OUTPUT_THAUM
+				|| side == EnumSideTA.OUTPUT_ESSENTIA;
 	}
 
 	@Override
@@ -819,10 +886,12 @@ public class TEDecomposer extends TileEntity implements ISidedInventory,
 				this.currentColumnOffset = nextCol;
 			}
 		}
-	}
-
-	private void sync() {
-		PacketHandler.sendToServer(new PacketTileSync(this));
+		else if (type.equals("CONTROLMODE")) {
+			this.currentControl = ControlMode.values()[packet.getInt()];
+		}
+		else if (type.equals("SIDE")) {
+			this.sideTypes[packet.getInt()] = EnumSideTA.values()[packet.getInt()];
+		}
 	}
 
 	@Override
@@ -870,15 +939,15 @@ public class TEDecomposer extends TileEntity implements ISidedInventory,
 
 		this.energyStorage.writeToNBT(tagCom);
 
-		tagCom.setInteger("currentTimeMax", this.currentTimeMax);
-		tagCom.setInteger("timeToDecompose", this.timeUntilNextDecompose);
+		tagCom.setInteger("currentMaxTicksForOperation", this.currentMaxTicksForOperation);
+		tagCom.setInteger("timeToDecompose", this.ticksTillNextOperation);
 
 		for (int side = 0; side < this.sideTypes.length; side++)
 			if (this.sideTypes[side] != null)
 				tagCom.setInteger("side" + side, this.sideTypes[side].ordinal());
 
 		NBTTagList augmentList = new NBTTagList();
-		for (EnumDecomposerAugment augment : this.augmentList) {
+		for (EnumAugmentTA augment : this.augmentList) {
 			NBTTagCompound augmentTag = new NBTTagCompound();
 			augmentTag.setString("name", augment.getStackName());
 			augmentList.appendTag(augmentTag);
@@ -920,18 +989,18 @@ public class TEDecomposer extends TileEntity implements ISidedInventory,
 
 		this.energyStorage.readFromNBT(tagCom);
 
-		this.currentTimeMax = tagCom.getInteger("currentTimeMax");
-		this.timeUntilNextDecompose = tagCom.getInteger("timeToDecompose");
+		this.currentMaxTicksForOperation = tagCom.getInteger("currentMaxTicksForOperation");
+		this.ticksTillNextOperation = tagCom.getInteger("timeToDecompose");
 
 		for (int side = 0; side < 6; side++) {
-			this.sideTypes[side] = EnumDecomposerSide.values()
+			this.sideTypes[side] = EnumSideTA.values()
 					[tagCom.getInteger("side" + side)];
 		}
 
 		this.augmentList.clear();
 		NBTTagList augmentList = tagCom.getTagList("augmentList", 10);
 		for (int i = 0; i < augmentList.tagCount(); i++) {
-			this.augmentList.add(EnumDecomposerAugment.getByName(
+			this.augmentList.add(EnumAugmentTA.getByName(
 					augmentList.getCompoundTagAt(i).getString("name")
 			));
 		}

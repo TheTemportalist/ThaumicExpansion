@@ -1,4 +1,4 @@
-package com.temportalist.scanner.common;
+package com.temportalist.scanner.common.lib;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -8,7 +8,7 @@ import net.minecraft.util.IIcon;
 /**
  * @author TheTemportalist
  */
-public enum EnumDecomposerSide {
+public enum EnumSideTA {
 
 	/*
 		permutations:
@@ -35,7 +35,7 @@ public enum EnumDecomposerSide {
 	@SideOnly(Side.CLIENT)
 	private IIcon icons[] = new IIcon[4];
 
-	private EnumDecomposerSide(String name) {
+	private EnumSideTA(String name) {
 		this.name = name;
 	}
 
@@ -51,18 +51,18 @@ public enum EnumDecomposerSide {
 		return this.icons[side > 1 ? 2 : side];
 	}
 
-	public EnumDecomposerSide next() {
+	public EnumSideTA next() {
 		int i = this.ordinal() + 1;
-		if (i >= EnumDecomposerSide.values().length)
+		if (i >= EnumSideTA.values().length)
 			i = 0;
-		return EnumDecomposerSide.values()[i];
+		return EnumSideTA.values()[i];
 	}
 
-	public EnumDecomposerSide last() {
+	public EnumSideTA last() {
 		int i = this.ordinal() - 1;
 		if (i < 0)
-			i = EnumDecomposerSide.values().length - 1;
-		return EnumDecomposerSide.values()[i];
+			i = EnumSideTA.values().length - 1;
+		return EnumSideTA.values()[i];
 	}
 
 }

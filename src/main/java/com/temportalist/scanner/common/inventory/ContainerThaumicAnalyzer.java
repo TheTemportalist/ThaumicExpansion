@@ -4,7 +4,7 @@ import cofh.core.gui.slot.SlotAugment;
 import cofh.lib.gui.container.IAugmentableContainer;
 import cofh.lib.util.helpers.AugmentHelper;
 import cofh.lib.util.helpers.ItemHelper;
-import com.temportalist.scanner.common.TEDecomposer;
+import com.temportalist.scanner.common.tile.TEThaumicAnalyzer;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.entity.player.EntityPlayer;
@@ -19,19 +19,19 @@ import net.minecraft.item.ItemStack;
  *
  * @author TheTemportalist
  */
-public class ContainerDecomposer extends Container implements IAugmentableContainer {
+public class ContainerThaumicAnalyzer extends Container implements IAugmentableContainer {
 
-	public final TEDecomposer tile;
+	public final TEThaumicAnalyzer tile;
 	private Slot[] augments;
 	protected boolean augmentLock = true;
 
-	public ContainerDecomposer(TEDecomposer tile, InventoryPlayer playerInv) {
+	public ContainerThaumicAnalyzer(TEThaumicAnalyzer tile, InventoryPlayer playerInv) {
 		this.tile = tile;
 
 		tile.openInventory();
 
 		// player inv
-		int playerInvHeight = 0;
+		int playerInvHeight = 17;
 		for (int row = 0; row < 3; ++row) {
 			for (int column = 0; column < 9; ++column) {
 				this.addSlotToContainer(new Slot(
@@ -49,7 +49,7 @@ public class ContainerDecomposer extends Container implements IAugmentableContai
 		}
 
 		// tile inv
-		this.addSlotToContainer(new Slot(tile, 0, 45 + 8, 19 + 8)); // todo
+		this.addSlotToContainer(new Slot(tile, 0, 58, 29));
 
 		this.augments = new Slot[this.tile.getAugmentSlots().length];
 		for (int i = 0; i < this.augments.length; i++) {

@@ -1,9 +1,11 @@
-package com.temportalist.scanner.common;
+package com.temportalist.scanner.common.lib;
+
+import com.temportalist.scanner.common.TEC;
 
 /**
  * @author TheTemportalist
  */
-public enum EnumDecomposerAugment {
+public enum EnumAugmentTA {
 
 	// auto ejection
 	INTEGRATED_SERVO(0),
@@ -12,9 +14,10 @@ public enum EnumDecomposerAugment {
 	SECONDARY_RECEPTION_COIL(128, 2, 3, new double[] { .95, 1, 1, 1 }),
 	OVERCLOCK_GEARBOX(129, 4, 8, new double[] { .85, 1, 1, 1 }),
 	SPACE_TIME_FLUX(130, 8, 20, new double[] { .70, 1, 1, 1 }),
-	// keeps items in, and can only hold 1 at a time
-	ITEM_KEEPER(Scanner.MODID + ":augment-itemKeeper:0"),
-	THAUMIC_ADJUSTER(Scanner.MODID + ":augment-thaulmicAdjuster:0",
+	PLAYER_TRACKER(TEC.MODID + ":augment-playerTracker:0"),
+	DECOMPOSER(TEC.MODID + ":augment-decomposer:0"),
+	ITEM_KEEPER(TEC.MODID + ":augment-itemKeeper:0"),
+	THAUMIC_ADJUSTER(TEC.MODID + ":augment-thaumicAdjuster:0",
 			1, 1, new double[] { 1, 1, 1, 1.1 }
 	);
 
@@ -23,7 +26,7 @@ public enum EnumDecomposerAugment {
 	private final double speedMultiplier, energyRequirementMultiplier;
 	private final double[] outputMultipliers;
 
-	private EnumDecomposerAugment(String itemFullName, double speedMult,
+	private EnumAugmentTA(String itemFullName, double speedMult,
 			double energyRequiredMult, double[] outputMults) {
 		this.stackName = itemFullName;
 		this.speedMultiplier = speedMult;
@@ -31,17 +34,17 @@ public enum EnumDecomposerAugment {
 		this.outputMultipliers = outputMults;
 	}
 
-	private EnumDecomposerAugment(String itemFullName) {
+	private EnumAugmentTA(String itemFullName) {
 		this(itemFullName, 1, 1, new double[] { 1, 1, 1, 1 });
 	}
 
-	private EnumDecomposerAugment(int temeta, double speedMultiplier,
+	private EnumAugmentTA(int temeta, double speedMultiplier,
 			double energyRequirementMultiplier, double[] outputMultipliers) {
 		this("ThermalExpansion:augment:" + temeta,
 				speedMultiplier, energyRequirementMultiplier, outputMultipliers);
 	}
 
-	private EnumDecomposerAugment(int temeta) {
+	private EnumAugmentTA(int temeta) {
 		this(temeta, 1, 1, new double[] { 1, 1, 1, 1 });
 	}
 
@@ -65,8 +68,8 @@ public enum EnumDecomposerAugment {
 		return outputMultipliers;
 	}
 
-	public static EnumDecomposerAugment getByName(String stackName) {
-		for (EnumDecomposerAugment enumType : EnumDecomposerAugment.values()) {
+	public static EnumAugmentTA getByName(String stackName) {
+		for (EnumAugmentTA enumType : EnumAugmentTA.values()) {
 			if (enumType.getStackName().equals(stackName))
 				return enumType;
 		}
