@@ -1,7 +1,7 @@
 [
 {
-  "modid": "scanner",
-  "name": "Scanner",
+  "modid": "thaumicexpansion",
+  "name": "Thaumic Expansion",
   "description": "Put Desc Here",
   "version": "${version}",
   "mcversion": "${mcversion}",
