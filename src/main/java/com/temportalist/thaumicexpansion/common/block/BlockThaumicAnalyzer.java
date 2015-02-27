@@ -151,6 +151,7 @@ public class BlockThaumicAnalyzer extends net.minecraft.block.Block implements I
 				ForgeDirection.getOrientation(convertedFacing).getOpposite()
 		);
 
+		TEThaumicAnalyzer tile = (TEThaumicAnalyzer) world.getTileEntity(x, y, z);
 		if (stack.hasTagCompound() && stack.getTagCompound().hasKey("augments")) {
 			NBTTagList augmentList = stack.getTagCompound().getTagList("augments", 10);
 			ItemStack[] augments = new ItemStack[augmentList.tagCount()];
@@ -161,7 +162,10 @@ public class BlockThaumicAnalyzer extends net.minecraft.block.Block implements I
 				augmentStack.setItemDamage(Integer.parseInt(parts[2]));
 				augments[augmentTag.getInteger("slot")] = augmentStack;
 			}
-			((TEThaumicAnalyzer) world.getTileEntity(x, y, z)).setAugments(augments);
+			tile.setAugments(augments);
+		}
+		if (placer instanceof EntityPlayer) {
+			tile.setPlacedBy((EntityPlayer) placer);
 		}
 
 	}

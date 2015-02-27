@@ -2,14 +2,13 @@ package com.temportalist.thaumicexpansion.common.lib;
 
 import com.temportalist.thaumicexpansion.common.tile.TEThaumicAnalyzer;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import thaumcraft.api.research.ScanResult;
-import thaumcraft.common.lib.network.PacketHandler;
-import thaumcraft.common.lib.network.playerdata.PacketScannedToServer;
 import thaumcraft.common.lib.research.ScanManager;
+
+import java.util.Set;
 
 /**
  * @author TheTemportalist
@@ -76,6 +75,10 @@ public class OperationAnalyzer implements IOperation {
 	}
 
 	@Override
+	public void updateAugments(Set<EnumAugmentTA> augments) {
+	}
+
+	@Override
 	public void run(TileEntity tileEntity, IOperator operator) {
 		if (!this.canRun(tileEntity, operator))
 			return;
@@ -83,15 +86,14 @@ public class OperationAnalyzer implements IOperation {
 		EntityPlayer player = tile.getCurrentPlayer();
 		if (player != null) {
 			ItemStack input = operator.getInput();
-			ScanResult scanResult = new ScanResult(
-					(byte) 1, Item.getIdFromItem(input.getItem()), input.getItemDamage(), null,
-					""
-			);
+			ScanResult scanResult = tile.getScan(input);
 			if (ScanManager.isValidScanTarget(player, scanResult, "@")) {
 				ScanManager.completeScan(player, scanResult, "@");
+				/*
 				PacketHandler.INSTANCE.sendToServer(
 						new PacketScannedToServer(scanResult, player, "@")
 				);
+				*/
 				operator.finishedOperation(null, input);
 			}
 		}

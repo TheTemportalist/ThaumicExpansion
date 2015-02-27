@@ -26,7 +26,7 @@ public class OperationDecomposer implements IOperation {
 		this.outputAspects = this.filterAspects(
 				ThaumcraftApiHelper.getObjectAspects(inputStack), decomposerTier, augments
 		);
-		this.hasItemKeeper = augments.contains(EnumAugmentTA.ITEM_KEEPER);
+		this.updateAugments(augments);
 		Aspect[] aspects = this.outputAspects.getAspects();
 		int energy = 0;
 		int time = 0;
@@ -134,6 +134,11 @@ public class OperationDecomposer implements IOperation {
 	@Override
 	public void reset() {
 		this.currentTicks = -1;
+	}
+
+	@Override
+	public void updateAugments(Set<EnumAugmentTA> augments) {
+		this.hasItemKeeper = augments.contains(EnumAugmentTA.ITEM_KEEPER);
 	}
 
 	@Override

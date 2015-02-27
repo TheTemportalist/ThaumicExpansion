@@ -4,12 +4,16 @@ import com.temportalist.thaumicexpansion.common.block.BlockThaumicAnalyzer;
 import com.temportalist.thaumicexpansion.common.item.ItemAugment;
 import com.temportalist.thaumicexpansion.common.packet.PacketRecieveAspect;
 import com.temportalist.thaumicexpansion.common.packet.PacketTileSync;
+import com.temportalist.thaumicexpansion.server.CommandTEC;
 import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.SidedProxy;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
+import cpw.mods.fml.common.event.FMLServerStartingEvent;
 import cpw.mods.fml.common.network.NetworkRegistry;
 import cpw.mods.fml.common.registry.GameData;
+import cpw.mods.fml.relauncher.Side;
+import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 import net.minecraft.creativetab.CreativeTabs;
@@ -18,11 +22,13 @@ import net.minecraft.init.Blocks;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.MinecraftServer;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.config.Configuration;
 import thaumcraft.api.aspects.Aspect;
 
 import java.io.File;
 import java.util.HashMap;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -43,7 +49,7 @@ public class TEC {
 	public static ProxyCommon proxy;
 
 	public Block thaumicAnalyzer;
-	public Item playerHolder, decomposerUpgrade, itemKeeper, thaumicAdjuster;
+	public Item playerTracker, decomposerUpgrade, itemKeeper, thaumicAdjuster;
 
 	public static final HashMap<Aspect, Integer> aspectTiers = new HashMap<Aspect, Integer>();
 	/**
@@ -78,6 +84,7 @@ public class TEC {
 		NetworkRegistry.INSTANCE.registerGuiHandler(TEC.instance, TEC.proxy);
 		PacketTileSync.init();
 		PacketRecieveAspect.init();
+		MinecraftForge.EVENT_BUS.register(this);
 
 		this.initConfig(event.getModConfigurationDirectory());
 
@@ -86,8 +93,17 @@ public class TEC {
 		);
 		this.thaumicAnalyzer.setCreativeTab(CreativeTabs.tabRedstone);
 
-		this.playerHolder = new ItemAugment(TEC.MODID, "playerTracker");
-		this.playerHolder.setCreativeTab(CreativeTabs.tabRedstone);
+		this.playerTracker = new ItemAugment(TEC.MODID, "playerTracker") {
+			@Override
+			@SideOnly(Side.CLIENT)
+			public void addInformation(ItemStack stack, EntityPlayer player,
+					List list, boolean something) {
+				if (stack.hasTagCompound()) {
+					list.add("Player UUID: " + stack.getTagCompound().getString("playerUUID"));
+				}
+			}
+		};
+		this.playerTracker.setCreativeTab(CreativeTabs.tabRedstone);
 		this.decomposerUpgrade = new ItemAugment(TEC.MODID, "decomposer");
 		this.decomposerUpgrade.setCreativeTab(CreativeTabs.tabRedstone);
 		this.itemKeeper = new ItemAugment(TEC.MODID, "itemKeeper");
@@ -160,13 +176,18 @@ public class TEC {
 		for (Object obj :
 				MinecraftServer.getServer().getConfigurationManager().playerEntityList) {
 			if (obj instanceof EntityPlayer) {
-				if (((EntityPlayer) obj).getUniqueID().equals(uuid)) {
+				if (((EntityPlayer) obj).getGameProfile().getId().equals(uuid)) {
 					player = (EntityPlayer) obj;
 					break;
 				}
 			}
 		}
 		return player;
+	}
+
+	@Mod.EventHandler
+	public void serverStart(FMLServerStartingEvent event) {
+		event.registerServerCommand(new CommandTEC());
 	}
 
 }

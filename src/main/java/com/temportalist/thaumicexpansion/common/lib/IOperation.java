@@ -3,6 +3,8 @@ package com.temportalist.thaumicexpansion.common.lib;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 
+import java.util.Set;
+
 /**
  * @author TheTemportalist
  */
@@ -23,6 +25,8 @@ public interface IOperation {
 	public boolean areTicksReady();
 
 	public void reset();
+
+	public void updateAugments(Set<EnumAugmentTA> augments);
 
 	public void run(TileEntity tileEntity, IOperator operator);
 
