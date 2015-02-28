@@ -1,5 +1,8 @@
 package com.temportalist.thaumicexpansion.common;
 
+import cofh.thermalexpansion.item.TEItems;
+import cofh.thermalexpansion.util.crafting.RecipeMachine;
+import cofh.thermalexpansion.util.crafting.RecipeMachineUpgrade;
 import com.temportalist.thaumicexpansion.common.block.BlockThaumicAnalyzer;
 import com.temportalist.thaumicexpansion.common.item.ItemAugment;
 import com.temportalist.thaumicexpansion.common.lib.Pair;
@@ -16,6 +19,7 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.PlayerEvent;
 import cpw.mods.fml.common.network.NetworkRegistry;
 import cpw.mods.fml.common.registry.GameData;
+import cpw.mods.fml.common.registry.GameRegistry;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.block.Block;
@@ -23,16 +27,23 @@ import net.minecraft.block.material.Material;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
+import net.minecraft.inventory.InventoryCrafting;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagList;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.MathHelper;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.config.Configuration;
+import net.minecraftforge.common.util.ForgeDirection;
+import net.minecraftforge.oredict.ShapedOreRecipe;
 import thaumcraft.api.aspects.Aspect;
 import thaumcraft.api.aspects.AspectList;
 import thaumcraft.api.research.ScanResult;
 import thaumcraft.common.Thaumcraft;
+import thaumcraft.common.config.ConfigBlocks;
+import thaumcraft.common.config.ConfigItems;
 import thaumcraft.common.lib.crafting.ThaumcraftCraftingManager;
 import thaumcraft.common.lib.research.PlayerKnowledge;
 import thaumcraft.common.lib.research.ScanManager;
@@ -60,7 +71,7 @@ public class TEC {
 	)
 	public static ProxyCommon proxy;
 
-	public Block thaumicAnalyzer;
+	public BlockThaumicAnalyzer thaumicAnalyzer;
 	public Item playerTracker, decomposerUpgrade, itemKeeper, thaumicAdjuster;
 
 	public static final HashMap<Aspect, Integer> aspectTiers = new HashMap<Aspect, Integer>();
@@ -85,6 +96,8 @@ public class TEC {
 	 * Value -> second check for each aspect
 	 */
 	public static final double[] tieredChance = new double[] { .4, .6, .8, 1 };
+
+	public static ItemStack[] machines = new ItemStack[4];
 
 	public static int maxEnergyStorage = 8000;
 	public static boolean consumeItems = true;
@@ -171,6 +184,71 @@ public class TEC {
 		TEC.aspectTiers.put(Aspect.POISON, 2);
 		TEC.aspectTiers.put(Aspect.ENERGY, 2);
 		TEC.aspectTiers.put(Aspect.EXCHANGE, 2);
+
+		NBTTagCompound blockStackTag = new NBTTagCompound();
+		NBTTagList augmentList = new NBTTagList(); // todo nbt helper to pass a string and ... params for key in
+		NBTTagCompound augmentTag = new NBTTagCompound();
+		augmentTag.setInteger("Slot", 0);
+		new ItemStack(this.playerTracker, 1, 0).writeToNBT(augmentTag);
+		augmentList.appendTag(augmentTag);
+		blockStackTag.setTag("Augments", augmentList);
+		for (int i = 0; i < TEC.machines.length; i++) {
+			TEC.machines[i] = new ItemStack(
+					this.thaumicAnalyzer, 1,
+					this.thaumicAnalyzer.getMetadata(i, ForgeDirection.EAST)
+			);
+			TEC.machines[i].setTagCompound(blockStackTag);
+		}
+
+		ItemStack[] augments = new ItemStack[] { new ItemStack(this.playerTracker) };
+		GameRegistry.addRecipe(new RecipeMachine(TEC.machines[0], augments, new Object[] {
+				"iti", " f ", "iri",
+				'i', "ingotThaumium", 't', ConfigItems.itemThaumometer,
+				'f', "thermalexpansion:machineFrame", 'r', TEItems.powerCoilGold
+		}) {
+			@Override
+			public ItemStack getCraftingResult(InventoryCrafting inv) {
+				ItemStack stack = super.getCraftingResult(inv);
+				byte level = stack.getTagCompound().getByte("Level");
+				stack.getTagCompound().removeTag("Level");
+				stack.setItemDamage(TEC.instance.thaumicAnalyzer.getMetadata(
+						level, ForgeDirection.EAST
+				));
+				return stack;
+			}
+		});
+		@SuppressWarnings("unchecked")
+		Pair<String, String>[] upgradeThings = new Pair[] {
+				new Pair<String, String>("ingotThaumium", "gearGold"),
+				new Pair<String, String>("ingotInvar", "gearSilver"),
+				new Pair<String, String>("blockGlassHardened", "gearPlatinum"),
+				new Pair<String, String>("ingotEnderium", "gearEnderium")
+		};
+		for (int i = 1; i < TEC.machines.length; i++) {
+			GameRegistry.addRecipe(new RecipeMachineUpgrade(i, TEC.machines[i], new Object[] {
+					"a a", " l ", "aba",
+					'a', upgradeThings[i].getKey(), 'b', upgradeThings[i].getValue(),
+					'l', TEC.machines[i - 1]
+			}));
+		}
+
+		GameRegistry.addRecipe(new ShapedOreRecipe(this.playerTracker,
+				"   ", " h ", "   ", 'h', Blocks.skull
+		));
+
+		GameRegistry.addRecipe(new ShapedOreRecipe(this.decomposerUpgrade,
+				"   ", " d ", "   ", 'd', new ItemStack(ConfigBlocks.blockTable, 1, 14)
+		));
+
+		GameRegistry.addRecipe(new ShapedOreRecipe(this.itemKeeper,
+				"i i", "ici", " i ",
+				'i', "ingotThaumium", 'c', Blocks.chest
+		));
+
+		GameRegistry.addRecipe(new ShapedOreRecipe(this.thaumicAdjuster,
+				"i i", "eje", " e ",
+				'i', "ingotThaumium", 'j', ConfigBlocks.blockJar, 'e', "ingotEnderium"
+		));
 
 	}
 

@@ -1,5 +1,8 @@
 
-tile.thaumicexpansion:thaumicAnalyzer=Thaumic Analyzer
+tile.thaumicexpansion:thaumicAnalyzer:0=Thaumic Analyzer (Basic)
+tile.thaumicexpansion:thaumicAnalyzer:1=Thaumic Analyzer (Hardened)
+tile.thaumicexpansion:thaumicAnalyzer:2=Thaumic Analyzer (Reinforced)
+tile.thaumicexpansion:thaumicAnalyzer:3=Thaumic Analyzer (Resonant)
 item.thaumicexpansion:itemKeeper.itemKeeper.name=Item Keeper
 item.thaumicexpansion:thaumicAdjuster.thaumicAdjuster.name=Thaumic Adjuster
 item.thaumicexpansion:playerTracker.playerTracker.name=Player Tracker

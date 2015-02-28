@@ -152,15 +152,13 @@ public class BlockThaumicAnalyzer extends net.minecraft.block.Block implements I
 		);
 
 		TEThaumicAnalyzer tile = (TEThaumicAnalyzer) world.getTileEntity(x, y, z);
-		if (stack.hasTagCompound() && stack.getTagCompound().hasKey("augments")) {
-			NBTTagList augmentList = stack.getTagCompound().getTagList("augments", 10);
+		if (stack.hasTagCompound() && stack.getTagCompound().hasKey("Augments")) {
+			NBTTagList augmentList = stack.getTagCompound().getTagList("Augments", 10);
 			ItemStack[] augments = new ItemStack[augmentList.tagCount()];
 			for (int i = 0; i < augmentList.tagCount(); i++) {
 				NBTTagCompound augmentTag = augmentList.getCompoundTagAt(i);
-				String[] parts = augmentTag.getString("stack").split(":");
-				ItemStack augmentStack = GameRegistry.findItemStack(parts[0], parts[1], 1);
-				augmentStack.setItemDamage(Integer.parseInt(parts[2]));
-				augments[augmentTag.getInteger("slot")] = augmentStack;
+				augments[augmentTag.getInteger("Slot")] = ItemStack
+						.loadItemStackFromNBT(augmentTag);
 			}
 			tile.setAugments(augments);
 		}
@@ -179,22 +177,8 @@ public class BlockThaumicAnalyzer extends net.minecraft.block.Block implements I
 
 	@Override
 	public void getSubBlocks(Item item, CreativeTabs tab, List list) {
-		NBTTagCompound blockStackTag = new NBTTagCompound();
-		NBTTagList augmentList = new NBTTagList(); // todo nbt helper to pass a string and ... params for key in
-
-		NBTTagCompound augmentTag = new NBTTagCompound();
-
-		augmentTag.setInteger("slot", 0);
-		augmentTag.setString("stack", TEC.MODID + ":playerTracker:0");
-		augmentList.appendTag(augmentTag);
-
-		blockStackTag.setTag("augments", augmentList);
-		for (int tier = 0; tier < 4; tier++) {
-			ItemStack blockStack = new ItemStack(
-					this, 1, this.getMetadata(tier, ForgeDirection.EAST)
-			);
-			blockStack.setTagCompound(blockStackTag);
-			((List<ItemStack>) list).add(blockStack);
+		for (ItemStack stack : TEC.machines) {
+			((List<ItemStack>) list).add(stack);
 		}
 	}
 
