@@ -1,12 +1,11 @@
 package com.temportalist.thaumicexpansion.common.lib;
 
+import com.temportalist.thaumicexpansion.common.TEC;
 import com.temportalist.thaumicexpansion.common.tile.TEThaumicAnalyzer;
-import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import thaumcraft.api.research.ScanResult;
-import thaumcraft.common.lib.research.ScanManager;
 
 import java.util.Set;
 
@@ -16,6 +15,7 @@ import java.util.Set;
 public class OperationAnalyzer implements IOperation {
 
 	private int maxTicks, energyCost, currentTicks = -1;
+	private boolean hasAdjuster = false;
 
 	public OperationAnalyzer(int time, int energyInput) {
 		this.maxTicks = time * 20;
@@ -46,17 +46,12 @@ public class OperationAnalyzer implements IOperation {
 	public boolean canRun(TileEntity tileEntity, IOperator operator) {
 		TEThaumicAnalyzer tile = (TEThaumicAnalyzer) tileEntity;
 		return tile.getEnergyStorage().getEnergyStored() >= this.energyCost &&
-				tile.getCurrentPlayer() != null && this.canOperateWithIO(operator);
+				tile.getCurrentPlayerName() != null && this.canOperateWithIO(operator);
 	}
 
 	private boolean canOperateWithIO(IOperator operator) {
-		return operator.getOutput() == null || (
-				operator.getInput().getItem() == operator.getOutput().getItem() &&
-						operator.getInput().getItemDamage() == operator.getOutput().stackSize &&
-						ItemStack.areItemStackTagsEqual(operator.getInput(), operator.getOutput())
-						&& operator.getOutput().stackSize + operator.getInput().stackSize <=
-						operator.getOutput().getMaxStackSize()
-		);
+		return operator.getOutput() == null ||
+				TEC.canInsertBIntoA(operator.getOutput(), operator.getInput());
 	}
 
 	@Override
@@ -75,7 +70,8 @@ public class OperationAnalyzer implements IOperation {
 	}
 
 	@Override
-	public void updateAugments(Set<EnumAugmentTA> augments) {
+	public void updateAugments(IOperator operator, Set<EnumAugmentTA> augments) {
+		this.hasAdjuster = augments.contains(EnumAugmentTA.THAUMIC_ADJUSTER);
 	}
 
 	@Override
@@ -83,17 +79,21 @@ public class OperationAnalyzer implements IOperation {
 		if (!this.canRun(tileEntity, operator))
 			return;
 		TEThaumicAnalyzer tile = (TEThaumicAnalyzer) tileEntity;
-		EntityPlayer player = tile.getCurrentPlayer();
-		if (player != null) {
+		String pName = tile.getCurrentPlayerName();
+		if (pName != null) {
 			ItemStack input = operator.getInput();
 			ScanResult scanResult = tile.getScan(input);
-			if (ScanManager.isValidScanTarget(player, scanResult, "@")) {
-				ScanManager.completeScan(player, scanResult, "@");
-				/*
-				PacketHandler.INSTANCE.sendToServer(
-						new PacketScannedToServer(scanResult, player, "@")
-				);
-				*/
+			if (tile.isValidScanTarget(pName, scanResult, "@")) {
+				double aspectChance = 0d;
+				double aspectPercentChange = 1d;
+				if (this.hasAdjuster) {
+					aspectChance = .5d;
+					aspectPercentChange = 1.1d;
+				}
+				TEC.addAspect(tile.getCurrentPlayerUUID(), scanResult, aspectChance,
+						aspectPercentChange);
+				if (tile.getWorldObj().rand.nextDouble() >= tile.getSecondaryChance())
+					input = null;
 				operator.finishedOperation(null, input);
 			}
 		}
@@ -111,6 +111,7 @@ public class OperationAnalyzer implements IOperation {
 		selfTag.setInteger("maxTicks", this.maxTicks);
 		selfTag.setInteger("energy", this.energyCost);
 		selfTag.setInteger("ticks", this.currentTicks);
+		selfTag.setBoolean("hasAdjuster", this.hasAdjuster);
 
 		tagCom.setTag(key, selfTag);
 	}
@@ -122,6 +123,7 @@ public class OperationAnalyzer implements IOperation {
 		this.maxTicks = selfTag.getInteger("maxTicks");
 		this.energyCost = selfTag.getInteger("energy");
 		this.currentTicks = selfTag.getInteger("ticks");
+		this.hasAdjuster = selfTag.getBoolean("hasAdjuster");
 
 	}
 

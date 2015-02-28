@@ -5,15 +5,19 @@ import com.temportalist.thaumicexpansion.common.item.ItemAugment;
 import com.temportalist.thaumicexpansion.common.packet.PacketRecieveAspect;
 import com.temportalist.thaumicexpansion.common.packet.PacketTileSync;
 import com.temportalist.thaumicexpansion.server.CommandTEC;
+import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.SidedProxy;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.event.FMLServerStartingEvent;
+import cpw.mods.fml.common.eventhandler.SubscribeEvent;
+import cpw.mods.fml.common.gameevent.PlayerEvent;
 import cpw.mods.fml.common.network.NetworkRegistry;
 import cpw.mods.fml.common.registry.GameData;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
+import javafx.util.Pair;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 import net.minecraft.creativetab.CreativeTabs;
@@ -22,11 +26,19 @@ import net.minecraft.init.Blocks;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.MathHelper;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.config.Configuration;
 import thaumcraft.api.aspects.Aspect;
+import thaumcraft.api.aspects.AspectList;
+import thaumcraft.api.research.ScanResult;
+import thaumcraft.common.Thaumcraft;
+import thaumcraft.common.lib.crafting.ThaumcraftCraftingManager;
+import thaumcraft.common.lib.research.PlayerKnowledge;
+import thaumcraft.common.lib.research.ScanManager;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
@@ -77,6 +89,11 @@ public class TEC {
 	public static int maxEnergyStorage = 8000;
 	public static boolean consumeItems = true;
 
+	public static final HashMap<UUID, String> idToUsername = new HashMap<UUID, String>();
+	public static final List<UUID> onlinePlayers = new ArrayList<UUID>();
+	private static final HashMap<UUID, List<Pair<ScanResult, Pair<Double, Double>>>> aspectBuffer =
+			new HashMap<UUID, List<Pair<ScanResult, Pair<Double, Double>>>>();
+
 	@Mod.EventHandler
 	public void preinit(FMLPreInitializationEvent event) {
 
@@ -85,6 +102,7 @@ public class TEC {
 		PacketTileSync.init();
 		PacketRecieveAspect.init();
 		MinecraftForge.EVENT_BUS.register(this);
+		FMLCommonHandler.instance().bus().register(this);
 
 		this.initConfig(event.getModConfigurationDirectory());
 
@@ -156,6 +174,73 @@ public class TEC {
 
 	}
 
+	@Mod.EventHandler
+	public void serverStart(FMLServerStartingEvent event) {
+		event.registerServerCommand(new CommandTEC());
+	}
+
+	@SubscribeEvent
+	public void login(PlayerEvent.PlayerLoggedInEvent event) {
+		UUID id = event.player.getGameProfile().getId();
+		TEC.idToUsername.put(id, event.player.getCommandSenderName());
+		TEC.onlinePlayers.add(id);
+		if (TEC.aspectBuffer.containsKey(id)) {
+			List<Pair<ScanResult, Pair<Double, Double>>> pendingScans = TEC.aspectBuffer.get(id);
+			for (Pair<ScanResult, Pair<Double, Double>> scan : pendingScans) {
+				TEC.addAspect(event.player, scan.getKey(), scan.getValue().getKey(),
+						scan.getValue().getValue());
+			}
+			TEC.aspectBuffer.remove(id);
+		}
+	}
+
+	@SubscribeEvent
+	public void logout(PlayerEvent.PlayerLoggedOutEvent event) {
+		TEC.onlinePlayers.remove(event.player.getGameProfile().getId());
+	}
+
+	public static void addAspect(UUID playerUUID, ScanResult scan, double aspectChance,
+			double aspectPercentageOnChance) {
+		if (TEC.onlinePlayers.contains(playerUUID))
+			TEC.addAspect(TEC.getPlayerOnline(playerUUID), scan, aspectChance,
+					aspectPercentageOnChance);
+		else {
+			if (!TEC.aspectBuffer.containsKey(playerUUID))
+				TEC.aspectBuffer.put(
+						playerUUID, new ArrayList<Pair<ScanResult, Pair<Double, Double>>>()
+				);
+			TEC.aspectBuffer.get(playerUUID).add(new Pair<ScanResult, Pair<Double, Double>>(
+					scan,
+					new Pair<Double, Double>(
+							aspectChance, aspectPercentageOnChance
+					)
+			));
+		}
+	}
+
+	private static void addAspect(EntityPlayer player, ScanResult scan, double aspectChance,
+			double aspectPercentageOnChance) {
+		Thaumcraft.proxy.getResearchManager().completeScannedObject(
+				player, "@" + ScanManager.generateItemHash(Item.getItemById(scan.id), scan.meta)
+		);
+		AspectList aspects = ThaumcraftCraftingManager.getObjectTags(
+				new ItemStack(Item.getItemById(scan.id), 1, scan.meta)
+		);
+		if (aspects != null) {
+			PlayerKnowledge pk = Thaumcraft.proxy.getPlayerKnowledge();
+			for (Aspect aspect : aspects.getAspects()) {
+				if (pk.hasDiscoveredParentAspects(player.getCommandSenderName(), aspect)) {
+					int amt = aspects.getAmount(aspect);
+					if (aspectChance > 0d &&
+							player.getEntityWorld().rand.nextDouble() < aspectChance)
+						amt = MathHelper
+								.ceiling_double_int((double) amt * aspectPercentageOnChance);
+					ScanManager.checkAndSyncAspectKnowledge(player, aspect, amt);
+				}
+			}
+		}
+	}
+
 	public static String getFullName(ItemStack itemStack) {
 		if (itemStack == null)
 			return null;
@@ -172,6 +257,8 @@ public class TEC {
 	}
 
 	public static EntityPlayer getPlayerOnline(UUID uuid) {
+		if (uuid == null)
+			System.out.println("null uuid");
 		EntityPlayer player = null;
 		for (Object obj :
 				MinecraftServer.getServer().getConfigurationManager().playerEntityList) {
@@ -185,9 +272,14 @@ public class TEC {
 		return player;
 	}
 
-	@Mod.EventHandler
-	public void serverStart(FMLServerStartingEvent event) {
-		event.registerServerCommand(new CommandTEC());
+	public static boolean canInsertBIntoA(ItemStack a, ItemStack b) {
+		return a == null || (
+				b != null
+						&& a.getItem() == b.getItem()
+						&& a.getItemDamage() == b.getItemDamage()
+						&& ItemStack.areItemStackTagsEqual(a, b)
+						&& a.stackSize + b.stackSize <= a.getMaxStackSize()
+		);
 	}
 
 }

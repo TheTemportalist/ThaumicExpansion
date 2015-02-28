@@ -34,10 +34,15 @@ public class PacketTileSync extends PacketCoFHBase {
 	@Override
 	public void handlePacket(EntityPlayer player, boolean isServer) {
 		int[] coords = this.getCoords();
+		if (coords == null)
+			return;
 		NBTTagCompound tag;
 		try {
 			tag = this.readNBT();
-			player.getEntityWorld().getTileEntity(coords[0], coords[1], coords[2]).readFromNBT(tag);
+			if (player != null)
+				player.getEntityWorld().getTileEntity(
+						coords[0], coords[1], coords[2]
+				).readFromNBT(tag);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

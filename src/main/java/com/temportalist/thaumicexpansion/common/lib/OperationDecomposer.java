@@ -18,15 +18,12 @@ import java.util.Set;
 public class OperationDecomposer implements IOperation {
 
 	private int maxTicks, energyCost, currentTicks = -1;
-	private AspectList outputAspects;
+	private AspectList outputAspects = new AspectList();
 	private boolean hasItemKeeper;
+	private int machineTier;
 
-	public OperationDecomposer(ItemStack inputStack, int decomposerTier,
-			Set<EnumAugmentTA> augments) {
-		this.outputAspects = this.filterAspects(
-				ThaumcraftApiHelper.getObjectAspects(inputStack), decomposerTier, augments
-		);
-		this.updateAugments(augments);
+	public OperationDecomposer(int decomposerTier) {
+		this.machineTier = decomposerTier;
 		Aspect[] aspects = this.outputAspects.getAspects();
 		int energy = 0;
 		int time = 0;
@@ -137,8 +134,13 @@ public class OperationDecomposer implements IOperation {
 	}
 
 	@Override
-	public void updateAugments(Set<EnumAugmentTA> augments) {
+	public void updateAugments(IOperator operator, Set<EnumAugmentTA> augments) {
+		this.outputAspects = this.filterAspects(
+				ThaumcraftApiHelper.getObjectAspects(operator.getInput()),
+				this.machineTier, augments
+		);
 		this.hasItemKeeper = augments.contains(EnumAugmentTA.ITEM_KEEPER);
+
 	}
 
 	@Override
@@ -172,6 +174,9 @@ public class OperationDecomposer implements IOperation {
 		selfTag.setInteger("maxTicks", this.maxTicks);
 		selfTag.setInteger("energy", this.energyCost);
 		selfTag.setInteger("ticks", this.currentTicks);
+		this.outputAspects.writeToNBT(selfTag, "outputAspects");
+		selfTag.setInteger("machineTier", this.machineTier);
+		selfTag.setBoolean("hasKeeper", this.hasItemKeeper);
 
 		tagCom.setTag(key, selfTag);
 	}
@@ -183,6 +188,9 @@ public class OperationDecomposer implements IOperation {
 		this.maxTicks = selfTag.getInteger("maxTicks");
 		this.energyCost = selfTag.getInteger("energy");
 		this.currentTicks = selfTag.getInteger("ticks");
+		this.outputAspects.readFromNBT(selfTag, "outputAspects");
+		this.machineTier = selfTag.getInteger("machineTier");
+		this.hasItemKeeper = selfTag.getBoolean("hasKeeper");
 
 	}
 

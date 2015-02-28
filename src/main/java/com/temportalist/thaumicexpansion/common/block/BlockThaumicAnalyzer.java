@@ -181,10 +181,13 @@ public class BlockThaumicAnalyzer extends net.minecraft.block.Block implements I
 	public void getSubBlocks(Item item, CreativeTabs tab, List list) {
 		NBTTagCompound blockStackTag = new NBTTagCompound();
 		NBTTagList augmentList = new NBTTagList(); // todo nbt helper to pass a string and ... params for key in
-		NBTTagCompound augmentsTag = new NBTTagCompound();
-		augmentsTag.setInteger("slot", 0);
-		augmentsTag.setString("stack", TEC.MODID + ":playerTracker:0");
-		augmentList.appendTag(augmentsTag);
+
+		NBTTagCompound augmentTag = new NBTTagCompound();
+
+		augmentTag.setInteger("slot", 0);
+		augmentTag.setString("stack", TEC.MODID + ":playerTracker:0");
+		augmentList.appendTag(augmentTag);
+
 		blockStackTag.setTag("augments", augmentList);
 		for (int tier = 0; tier < 4; tier++) {
 			ItemStack blockStack = new ItemStack(

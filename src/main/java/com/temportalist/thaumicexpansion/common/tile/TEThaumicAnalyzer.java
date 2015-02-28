@@ -10,6 +10,7 @@ import cofh.core.network.ITileInfoPacketHandler;
 import cofh.core.network.PacketCoFHBase;
 import cofh.core.network.PacketHandler;
 import cofh.core.network.PacketTileInfo;
+import cofh.lib.util.helpers.EnergyHelper;
 import cofh.lib.util.position.IRotateableTile;
 import com.temportalist.thaumicexpansion.common.TEC;
 import com.temportalist.thaumicexpansion.common.block.BlockThaumicAnalyzer;
@@ -17,6 +18,7 @@ import com.temportalist.thaumicexpansion.common.lib.*;
 import com.temportalist.thaumicexpansion.common.packet.PacketTileSync;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
@@ -35,6 +37,7 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.IIcon;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
+import thaumcraft.api.ThaumcraftApi;
 import thaumcraft.api.ThaumcraftApiHelper;
 import thaumcraft.api.aspects.Aspect;
 import thaumcraft.api.aspects.AspectList;
@@ -43,12 +46,11 @@ import thaumcraft.api.aspects.IEssentiaTransport;
 import thaumcraft.api.research.ScanResult;
 import thaumcraft.common.Thaumcraft;
 import thaumcraft.common.lib.network.playerdata.PacketAspectPool;
+import thaumcraft.common.lib.research.PlayerKnowledge;
 import thaumcraft.common.lib.research.ResearchManager;
 import thaumcraft.common.lib.research.ScanManager;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * @author TheTemportalist
@@ -62,6 +64,8 @@ public class TEThaumicAnalyzer extends TileEntity implements ISidedInventory,
 		IAspectContainer, IEssentiaTransport {
 
 	public static final int hexagonProgressSteps = 13;
+
+	public final int INPUT_MAIN = 0, INPUT_CAPACITOR = 1, OUTPUT_MAIN = 2;
 
 	protected EnergyStorage energyStorage = new EnergyStorage(TEC.maxEnergyStorage);
 	private ItemStack[] stacks = new ItemStack[3];
@@ -92,8 +96,13 @@ public class TEThaumicAnalyzer extends TileEntity implements ISidedInventory,
 
 	private void analyzerUpdate() {
 		// todo time energy of operation
-		if (this.currentOperation == null)
-			this.currentOperation = new OperationAnalyzer(10, 20);
+		if (this.currentOperation == null) {
+			this.currentOperation = new OperationAnalyzer(
+					this.getAdjustedTime(2),
+					this.getAdjustedEnergy(20)
+			);
+			this.currentOperation.updateAugments(this, this.augmentList.keySet());
+		}
 		if (this.canOperate() && this.getInput() != null) {
 			if (!this.currentOperation.isRunning() &&
 					this.currentOperation.canRun(this, this)) {
@@ -106,14 +115,15 @@ public class TEThaumicAnalyzer extends TileEntity implements ISidedInventory,
 				else {
 					this.currentOperation.tick();
 					if (this.currentOperation.areTicksReady()) {
-						this.currentOperation.run(this, this);
+						if (!this.getWorldObj().isRemote) {
+							this.currentOperation.run(this, this);
 
-						int[] costs = (int[]) this.currentOperation.getCosts();
-						this.energyStorage.extractEnergy(costs[0], false);
-
+							int[] costs = (int[]) this.currentOperation.getCosts();
+							this.energyStorage.extractEnergy(costs[0], false);
+						}
 						this.currentOperation = null;
 						this.markDirty();
-						PacketHandler.sendToAll(new PacketTileSync(this));
+						PacketHandler.sendToAll(new PacketTileSync(this)); // todo narrow syncing
 					}
 				}
 			}
@@ -123,12 +133,12 @@ public class TEThaumicAnalyzer extends TileEntity implements ISidedInventory,
 	}
 
 	private void decomposerUpdate() {
-		if (this.currentOperation == null)
+		if (this.currentOperation == null) {
 			this.currentOperation = new OperationDecomposer(
-					this.getInput(),
-					this.getBlock().getTier(this.getBlockMetadata()),
-					this.augmentList.keySet()
+					this.getBlock().getTier(this.getBlockMetadata())
 			);
+			this.currentOperation.updateAugments(this, this.augmentList.keySet());
+		}
 		if (this.canOperate() && this.getInput() != null) {
 			if (!this.currentOperation.isRunning() &&
 					this.currentOperation.canRun(this, this)) {
@@ -162,21 +172,23 @@ public class TEThaumicAnalyzer extends TileEntity implements ISidedInventory,
 
 	@Override
 	public ItemStack getInput() {
-		return this.stacks[0];
+		return this.stacks[this.INPUT_MAIN];
 	}
 
 	@Override
 	public ItemStack getOutput() {
-		return this.stacks[1];
+		return this.stacks[this.OUTPUT_MAIN];
 	}
 
 	@Override
 	public void finishedOperation(ItemStack setInput, ItemStack toOutput) {
-		this.stacks[0] = setInput;
-		if (this.stacks[1] == null)
-			this.stacks[1] = toOutput;
+		this.stacks[this.INPUT_MAIN] = setInput;
+		if (this.stacks[this.OUTPUT_MAIN] == null)
+			this.stacks[this.OUTPUT_MAIN] = toOutput;
 		else if (toOutput != null)
-			this.stacks[1].stackSize += toOutput.stackSize;
+			this.stacks[this.OUTPUT_MAIN].stackSize += toOutput.stackSize;
+		this.markDirty();
+		System.out.println("finished");
 	}
 
 	private int getAdjustedTime(int baseTimeInTicks) {
@@ -186,11 +198,19 @@ public class TEThaumicAnalyzer extends TileEntity implements ISidedInventory,
 		return baseTimeInTicks;
 	}
 
-	private int getEnergyRequired(int baseRequirement) {
+	private int getAdjustedEnergy(int baseRequirement) {
 		for (EnumAugmentTA augment : this.augmentList.keySet()) {
 			baseRequirement *= augment.getEnergyRequirementMultiplier();
 		}
 		return baseRequirement;
+	}
+
+	public double getSecondaryChance() {
+		double chance = 1d;
+		for (EnumAugmentTA augment : this.augmentList.keySet()) {
+			chance += augment.getOutputMultipliers()[0];
+		}
+		return chance;
 	}
 
 	@SideOnly(Side.CLIENT)
@@ -274,17 +294,27 @@ public class TEThaumicAnalyzer extends TileEntity implements ISidedInventory,
 		);
 	}
 
-	public EntityPlayer getCurrentPlayer() {
+	public UUID getCurrentPlayerUUID() {
 		ItemStack playerTracker = this.getAugment(EnumAugmentTA.PLAYER_TRACKER);
+		//System.out.println("getting player");
 		if (playerTracker != null) {
+			//System.out.println("non null player stack");
 			NBTTagCompound tag = playerTracker.getTagCompound();
 			if (tag != null) {
+				//System.out.println("non null tag");
 				try {
-					return TEC.getPlayerOnline(UUID.fromString(tag.getString("playerUUID")));
-				} catch (Exception e) {}
+					//System.out.println("fetching tag");
+					return UUID.fromString(tag.getString("playerUUID"));
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
 			}
 		}
 		return null;
+	}
+
+	public String getCurrentPlayerName() {
+		return TEC.idToUsername.get(this.getCurrentPlayerUUID());
 	}
 
 	public void setAugments(ItemStack[] augments) {
@@ -322,14 +352,86 @@ public class TEThaumicAnalyzer extends TileEntity implements ISidedInventory,
 
 	public ScanResult getScan(ItemStack stack) {
 		return new ScanResult(
-				(byte) 1, Item.getIdFromItem(stack.getItem()), stack.getItemDamage(), null,
-				""
+				(byte) 1, Item.getIdFromItem(stack.getItem()), stack.getItemDamage(),
+				null, ""
 		);
 	}
 
 	public boolean canScan(ItemStack stack) {
-		return this.getCurrentPlayer() != null &&
-				!ScanManager.hasBeenScanned(this.getCurrentPlayer(), this.getScan(stack));
+		AspectList list = ThaumcraftApiHelper.getObjectAspects(stack);
+		if (list != null && list.size() > 0) {
+			String pName = this.getCurrentPlayerName();
+			if (pName != null) {
+				PlayerKnowledge pk = Thaumcraft.proxy.getPlayerKnowledge();
+
+				for (Aspect aspect : list.getAspects()) {
+					if (aspect != null && !aspect.isPrimal()
+							&& !pk.hasDiscoveredParentAspects(pName, aspect))
+						return false;
+				}
+				return this.isValidScanTarget(pName, this.getScan(stack), "@");
+			}
+		}
+		return false;
+	}
+
+	public boolean isValidScanTarget(String pName, ScanResult scan, String prefix) {
+		if (scan == null)
+			return false;
+
+		if ((prefix.equals("@")) && (!isValidScanTarget(pName, scan, "#")))
+			return false;
+
+		if (scan.type == 1) {
+			List arg = Arrays.asList(Item.getItemById(scan.id), scan.meta);
+			if (ThaumcraftApi.groupedObjectTags.containsKey(arg)) {
+				scan.meta = ThaumcraftApi.groupedObjectTags.get(arg)[0];
+			}
+			List list = (List) Thaumcraft.proxy.getScannedObjects().get(pName);
+			if (list != null && list.contains(prefix + ScanManager.generateItemHash(
+					Item.getItemById(scan.id),
+					scan.meta
+			))) {
+				return false;
+			}
+		}
+		else if (scan.type == 2) {
+			if ((scan.entity instanceof EntityItem)) {
+				EntityItem item = (EntityItem) scan.entity;
+				ItemStack t = item.getEntityItem().copy();
+				t.stackSize = 1;
+				List arg = Arrays.asList(t.getItem(), t.getItemDamage());
+				if (ThaumcraftApi.groupedObjectTags.containsKey(arg)) {
+					t.setItemDamage(ThaumcraftApi.groupedObjectTags.get(arg)[0]);
+				}
+				List list = (List) Thaumcraft.proxy.getScannedObjects().get(pName);
+				if (list != null && list.contains(
+						prefix + ScanManager.generateItemHash(t.getItem(), t.getItemDamage())
+				))
+					return false;
+			}
+			else {
+				List list = (List) Thaumcraft.proxy.getScannedEntities().get(pName);
+				if (list != null) {
+					try {
+						String hash = (String) ScanManager.class.getDeclaredMethod(
+								"generateEntityHash", Entity.class
+						).invoke(null, scan.entity);
+						if (list.contains(prefix + hash))
+							return false;
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		}
+		else if (scan.type == 3) {
+			List list = (List) Thaumcraft.proxy.getScannedPhenomena().get(pName);
+			if ((list != null) && (list.contains(prefix + scan.phenomena))) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	// ~~~~~~~~~~~~~~~ Below is background functionality, Tinker at your own risk ~~~~~~~~~~~~~~~
@@ -417,18 +519,23 @@ public class TEThaumicAnalyzer extends TileEntity implements ISidedInventory,
 		if (this.isValidSlot(slot)) {
 			if (stack == null)
 				this.stacks[slot] = null;
-			else if (this.isItemValidForSlot(slot, stack))
+			else
 				this.stacks[slot] = stack.copy();
+			//this.markDirty();
 		}
 	}
 
 	@Override
 	public boolean isItemValidForSlot(int slot, ItemStack itemStack) {
-		if (itemStack == null)
+		if (itemStack == null || slot == this.OUTPUT_MAIN)
 			return true;
-		if (slot != 2 && this.isValidSlot(slot)) {
-			AspectList list = ThaumcraftApiHelper.getObjectAspects(itemStack);
-			return list != null && list.size() > 0 && this.canScan(itemStack);
+		if (this.isValidSlot(slot)) {
+			if (slot == this.INPUT_MAIN) {
+				return this.canScan(itemStack);
+			}
+			else if (slot == this.INPUT_CAPACITOR) {
+				return EnergyHelper.isEnergyContainerItem(itemStack);
+			}
 		}
 		return false;
 	}
@@ -462,18 +569,25 @@ public class TEThaumicAnalyzer extends TileEntity implements ISidedInventory,
 
 	@Override
 	public int[] getAccessibleSlotsFromSide(int side) {
-		return new int[] { 0, 1, 2 }; // todo
+		if (this.sideTypes[side] == EnumSideTA.IO)
+			return new int[] { this.INPUT_MAIN, this.INPUT_CAPACITOR, this.OUTPUT_MAIN };
+		else if (this.canInput_Item(side))
+			return new int[] { this.INPUT_MAIN, this.INPUT_CAPACITOR };
+		else if (this.canOutput_Item(side))
+			return new int[] { this.OUTPUT_MAIN };
+		else
+			return new int[0];
 	}
 
 	@Override
 	public boolean canInsertItem(int slot, ItemStack stack, int side) {
-		return this.isValidSlot(slot) && this.canInput_Item(side) &&
-				this.isItemValidForSlot(slot, stack);
+		return this.isValidSlot(slot) && this.canInput_Item(side)
+				&& this.isItemValidForSlot(slot, stack);
 	}
 
 	@Override
 	public boolean canExtractItem(int slot, ItemStack stack, int side) {
-		return this.isValidSlot(slot) && slot == 2 && this.canOutput_Item(side);
+		return this.isValidSlot(slot) && slot == this.OUTPUT_MAIN && this.canOutput_Item(side);
 	}
 
 	@Override
@@ -545,7 +659,7 @@ public class TEThaumicAnalyzer extends TileEntity implements ISidedInventory,
 		if (augmentPreSize != this.augmentList.size() && this.currentOperation != null) {
 			// if you change the augments, you will reset the progress
 			this.currentOperation.reset();
-			this.currentOperation.updateAugments(this.augmentList.keySet());
+			this.currentOperation.updateAugments(this, this.augmentList.keySet());
 		}
 	}
 

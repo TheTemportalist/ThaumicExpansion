@@ -25,7 +25,7 @@ public class ContainerThaumicAnalyzer extends Container implements IAugmentableC
 	private Slot[] augments;
 	protected boolean augmentLock = true;
 
-	public ContainerThaumicAnalyzer(TEThaumicAnalyzer tile, InventoryPlayer playerInv) {
+	public ContainerThaumicAnalyzer(final TEThaumicAnalyzer tile, InventoryPlayer playerInv) {
 		this.tile = tile;
 
 		tile.openInventory();
@@ -51,9 +51,14 @@ public class ContainerThaumicAnalyzer extends Container implements IAugmentableC
 		}
 
 		// tile inv
-		this.addSlotToContainer(new Slot(tile, 0, 54, 30));
-		this.addSlotToContainer(new Slot(tile, 1, 88, 56));
-		this.addSlotToContainer(new Slot(tile, 2, 13, 56));
+		this.addSlotToContainer(new Slot(tile, tile.INPUT_MAIN, 54, 30) {
+			@Override
+			public boolean isItemValid(ItemStack stack) {
+				return tile.isItemValidForSlot(tile.INPUT_MAIN, stack);
+			}
+		});
+		this.addSlotToContainer(new Slot(tile, tile.INPUT_CAPACITOR, 13, 56));
+		this.addSlotToContainer(new Slot(tile, tile.OUTPUT_MAIN, 88, 56));
 
 		this.augments = new Slot[this.tile.getAugmentSlots().length];
 		for (int i = 0; i < this.augments.length; i++) {

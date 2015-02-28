@@ -26,7 +26,7 @@ public interface IOperation {
 
 	public void reset();
 
-	public void updateAugments(Set<EnumAugmentTA> augments);
+	public void updateAugments(IOperator operator, Set<EnumAugmentTA> augments);
 
 	public void run(TileEntity tileEntity, IOperator operator);
 

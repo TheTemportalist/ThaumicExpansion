@@ -13,9 +13,7 @@ import com.temportalist.thaumicexpansion.common.TEC;
 import com.temportalist.thaumicexpansion.common.inventory.ContainerThaumicAnalyzer;
 import com.temportalist.thaumicexpansion.common.tile.TEThaumicAnalyzer;
 import net.minecraft.client.gui.Gui;
-import net.minecraft.inventory.Slot;
 import net.minecraft.util.ResourceLocation;
-import org.lwjgl.opengl.GL11;
 import thaumcraft.api.aspects.Aspect;
 import thaumcraft.api.aspects.AspectList;
 import thaumcraft.client.lib.UtilsFX;
@@ -163,23 +161,25 @@ public class GuiDecomposer extends GuiBaseAdv {
 
 	}
 
+	/*
 	@Override
 	protected void func_146977_a(Slot slot) {
 		if (slot.getSlotIndex() == 0 &&
 				slot.inventory == this.container().tile) { // todo instance of special
 			GL11.glPushMatrix();
-			slot.xDisplayPosition -= 30;
-			slot.yDisplayPosition -= 18;
+			slot.xDisplayPosition -= 16;
+			slot.yDisplayPosition -= 16;
 			GL11.glScalef(2, 2, 2);
 			super.func_146977_a(slot);
 			GL11.glScalef(.5f, .5f, .5f);
-			slot.xDisplayPosition += 30;
-			slot.yDisplayPosition += 18;
+			slot.xDisplayPosition += 16;
+			slot.yDisplayPosition += 16;
 			GL11.glPopMatrix();
 		}
 		else {
 			super.func_146977_a(slot);
 		}
 	}
+	*/
 
 }
