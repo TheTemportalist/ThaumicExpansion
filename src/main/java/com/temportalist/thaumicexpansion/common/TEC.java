@@ -2,6 +2,7 @@ package com.temportalist.thaumicexpansion.common;
 
 import com.temportalist.thaumicexpansion.common.block.BlockThaumicAnalyzer;
 import com.temportalist.thaumicexpansion.common.item.ItemAugment;
+import com.temportalist.thaumicexpansion.common.lib.Pair;
 import com.temportalist.thaumicexpansion.common.packet.PacketRecieveAspect;
 import com.temportalist.thaumicexpansion.common.packet.PacketTileSync;
 import com.temportalist.thaumicexpansion.server.CommandTEC;
@@ -17,7 +18,6 @@ import cpw.mods.fml.common.network.NetworkRegistry;
 import cpw.mods.fml.common.registry.GameData;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
-import javafx.util.Pair;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 import net.minecraft.creativetab.CreativeTabs;

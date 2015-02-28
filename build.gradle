@@ -17,34 +17,13 @@ buildscript {
 
 apply plugin: 'forge'
 
-version = "1.0"
+version = "1.0-stablebuild2"
 group = "com.temportalist.thaumicexpansion" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = "ThaumicExpansion"
 
 minecraft {
     version = "1.7.10-10.13.2.1291"
     runDir = "run"
-}
-
-repositories {
-    ivy {
-        name "CoFHCore"
-        artifactPattern 'http://addons.cursecdn.com/files/2221/835/[module]-[revision].[ext]'
-    }
-    ivy {
-        name "ThermalExpansion"
-        artifactPattern "http://addons.cursecdn.com/files/2221/850/[module]-[revision].[ext]"
-    }
-    ivy {
-        name "ThermalFoundation"
-        artifactPattern "http://addons.cursecdn.com/files/2221/831/[module]-[revision].[ext]"
-    }
-}
-
-dependencies {
-    compile group: 'cofh', name: 'CoFHCore', version: "[1.7.10]3.0.0RC2-195-dev", ext: 'jar'
-    compile group: 'cofh', name: 'ThermalExpansion', version: "[1.7.10]4.0.0RC2-129-dev", ext: 'jar'
-    compile group: 'cofh', name: 'ThermalFoundation', version: "[1.7.10]1.0.0RC3-56-dev", ext: 'jar'
 }
 
 processResources
