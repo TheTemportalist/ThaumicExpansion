@@ -19,8 +19,9 @@ public class OperationDecomposer implements IOperation {
 
 	private int maxTicks, energyCost, currentTicks = -1;
 	private AspectList outputAspects = new AspectList();
-	private boolean hasItemKeeper;
+	private boolean hasItemKeeper, hasTracker;
 	private int machineTier;
+	private double secondaryChanceMult = 1d;
 
 	public OperationDecomposer(int decomposerTier) {
 		this.machineTier = decomposerTier;
@@ -42,6 +43,8 @@ public class OperationDecomposer implements IOperation {
 
 	private AspectList filterAspects(AspectList aspectList, int machineTier,
 			Set<EnumAugmentTA> augments) {
+		if (aspectList == null)
+			return null;
 		AspectList resultList = new AspectList();
 		Random rand = new Random();
 		Aspect[] aspects = aspectList.getAspectsSorted();
@@ -135,11 +138,18 @@ public class OperationDecomposer implements IOperation {
 
 	@Override
 	public void updateAugments(IOperator operator, Set<EnumAugmentTA> augments) {
-		this.outputAspects = this.filterAspects(
-				ThaumcraftApiHelper.getObjectAspects(operator.getInput()),
-				this.machineTier, augments
-		);
+		if (operator.getInput() != null) {
+			this.outputAspects = this.filterAspects(
+					ThaumcraftApiHelper.getObjectAspects(operator.getInput()),
+					this.machineTier, augments
+			);
+		}
 		this.hasItemKeeper = augments.contains(EnumAugmentTA.ITEM_KEEPER);
+		this.hasTracker = augments.contains(EnumAugmentTA.PLAYER_TRACKER);
+		this.secondaryChanceMult = 1d;
+		for (EnumAugmentTA augment : augments) {
+			this.secondaryChanceMult *= augment.getOutputMultipliers()[0];
+		}
 
 	}
 
@@ -148,12 +158,19 @@ public class OperationDecomposer implements IOperation {
 		if (!this.canRun(tileEntity, operator))
 			return;
 		TEThaumicAnalyzer tile = (TEThaumicAnalyzer) tileEntity;
-		tile.addAspects(this.outputAspects);
+
+		if (this.hasTracker)
+			TEC.addAspect(
+					tile.getCurrentPlayerUUID(), tile.getScan(operator.getInput()), 0d, 0d
+			);
+		else
+			tile.addAspects(this.outputAspects);
 
 		ItemStack input = operator.getInput();
 		ItemStack output = null;
-		if (!this.hasItemKeeper
-				|| tile.getWorldObj().rand.nextDouble() >= .5d) { // 50% chance to discard
+		if (tile.getWorldObj().rand.nextDouble() <
+				(this.hasItemKeeper ? .8 : .1d) * this.secondaryChanceMult) {
+			// you are able to keep the item
 			output = input.copy();
 			output.stackSize = 1;
 		}
@@ -177,6 +194,8 @@ public class OperationDecomposer implements IOperation {
 		this.outputAspects.writeToNBT(selfTag, "outputAspects");
 		selfTag.setInteger("machineTier", this.machineTier);
 		selfTag.setBoolean("hasKeeper", this.hasItemKeeper);
+		selfTag.setDouble("secondaryChanceMult", this.secondaryChanceMult);
+		selfTag.setBoolean("hasTracker", this.hasTracker);
 
 		tagCom.setTag(key, selfTag);
 	}
@@ -191,6 +210,8 @@ public class OperationDecomposer implements IOperation {
 		this.outputAspects.readFromNBT(selfTag, "outputAspects");
 		this.machineTier = selfTag.getInteger("machineTier");
 		this.hasItemKeeper = selfTag.getBoolean("hasKeeper");
+		this.secondaryChanceMult = selfTag.getDouble("secondaryChanceMult");
+		this.hasTracker = selfTag.getBoolean("hasTracker");
 
 	}
 

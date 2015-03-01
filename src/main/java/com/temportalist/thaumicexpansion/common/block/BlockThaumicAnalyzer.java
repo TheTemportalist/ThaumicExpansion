@@ -219,9 +219,11 @@ public class BlockThaumicAnalyzer extends net.minecraft.block.Block implements I
 			}
 		}
 		*/
-		player.openGui(TEC.instance, 0, world, x, y, z);
-
-		return true;
+		if (!player.isSneaking()) {
+			player.openGui(TEC.instance, 0, world, x, y, z);
+			return true;
+		}
+		return false;
 	}
 
 	private void addAspect(EntityPlayerMP player, Aspect aspect, short amount) {

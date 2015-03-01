@@ -98,8 +98,8 @@ public class TEThaumicAnalyzer extends TileEntity implements ISidedInventory,
 		// todo time energy of operation
 		if (this.currentOperation == null) {
 			this.currentOperation = new OperationAnalyzer(
-					this.getAdjustedTime(2),
-					this.getAdjustedEnergy(20)
+					this.getAugmentedTime(2),
+					this.getAugmentedEnergy(20)
 			);
 			this.currentOperation.updateAugments(this, this.augmentList.keySet());
 		}
@@ -137,11 +137,11 @@ public class TEThaumicAnalyzer extends TileEntity implements ISidedInventory,
 			this.currentOperation = new OperationDecomposer(
 					this.getBlock().getTier(this.getBlockMetadata())
 			);
-			this.currentOperation.updateAugments(this, this.augmentList.keySet());
 		}
 		if (this.canOperate() && this.getInput() != null) {
 			if (!this.currentOperation.isRunning() &&
 					this.currentOperation.canRun(this, this)) {
+				this.currentOperation.updateAugments(this, this.augmentList.keySet());
 				this.currentOperation.start();
 			}
 			else {
@@ -151,17 +151,21 @@ public class TEThaumicAnalyzer extends TileEntity implements ISidedInventory,
 				else {
 					this.currentOperation.tick();
 					if (this.currentOperation.areTicksReady()) {
-						this.currentOperation.run(this, this);
+						if (!this.getWorldObj().isRemote) {
+							this.currentOperation.run(this, this);
 
-						int[] costs = (int[]) this.currentOperation.getCosts();
-						this.energyStorage.extractEnergy(costs[0], false);
-
+							int[] costs = (int[]) this.currentOperation.getCosts();
+							this.energyStorage.extractEnergy(costs[0], false);
+						}
 						this.currentOperation = null;
 						this.markDirty();
+						PacketHandler.sendToAll(new PacketTileSync(this)); // todo narrow syncing
 					}
 				}
 			}
 		}
+		else if (this.currentOperation.isRunning())
+			this.currentOperation.reset();
 	}
 
 	public boolean canOperate() {
@@ -191,14 +195,14 @@ public class TEThaumicAnalyzer extends TileEntity implements ISidedInventory,
 		System.out.println("finished");
 	}
 
-	private int getAdjustedTime(int baseTimeInTicks) {
+	private int getAugmentedTime(int baseTimeInTicks) {
 		for (EnumAugmentTA augment : this.augmentList.keySet()) {
 			baseTimeInTicks *= augment.getTimeMultiplier();
 		}
 		return baseTimeInTicks;
 	}
 
-	private int getAdjustedEnergy(int baseRequirement) {
+	private int getAugmentedEnergy(int baseRequirement) {
 		for (EnumAugmentTA augment : this.augmentList.keySet()) {
 			baseRequirement *= augment.getEnergyRequirementMultiplier();
 		}
@@ -360,16 +364,20 @@ public class TEThaumicAnalyzer extends TileEntity implements ISidedInventory,
 	public boolean canScan(ItemStack stack) {
 		AspectList list = ThaumcraftApiHelper.getObjectAspects(stack);
 		if (list != null && list.size() > 0) {
-			String pName = this.getCurrentPlayerName();
-			if (pName != null) {
-				PlayerKnowledge pk = Thaumcraft.proxy.getPlayerKnowledge();
+			if (this.augmentList.containsKey(EnumAugmentTA.DECOMPOSER))
+				return true;
+			else {
+				String pName = this.getCurrentPlayerName();
+				if (pName != null) {
+					PlayerKnowledge pk = Thaumcraft.proxy.getPlayerKnowledge();
 
-				for (Aspect aspect : list.getAspects()) {
-					if (aspect != null && !aspect.isPrimal()
-							&& !pk.hasDiscoveredParentAspects(pName, aspect))
-						return false;
+					for (Aspect aspect : list.getAspects()) {
+						if (aspect != null && !aspect.isPrimal()
+								&& !pk.hasDiscoveredParentAspects(pName, aspect))
+							return false;
+					}
+					return this.isValidScanTarget(pName, this.getScan(stack), "@");
 				}
-				return this.isValidScanTarget(pName, this.getScan(stack), "@");
 			}
 		}
 		return false;
@@ -824,23 +832,33 @@ public class TEThaumicAnalyzer extends TileEntity implements ISidedInventory,
 	@Override
 	public void setAspects(AspectList newList) {
 		this.aspects = newList;
+		this.markDirty();
 	}
 
 	@Override
 	public boolean doesContainerAccept(Aspect aspect) {
-		return this.aspects.aspects.containsKey(aspect);
+		return false;
 	}
 
 	@Override
 	public int addToContainer(Aspect aspect, int amount) {
 		this.aspects.add(aspect, amount);
+		this.markDirty();
 		return amount;
 	}
 
 	@Override
 	public boolean takeFromContainer(Aspect aspect, int amount) {
-		boolean ret = this.aspects.reduce(aspect, amount);
-		return ret;
+		int contained = this.aspects.getAmount(aspect);
+		if (contained < amount)
+			return false;
+		else if (contained > amount)
+			this.aspects.reduce(aspect, amount);
+		else if (contained == amount)
+			this.aspects.remove(aspect);
+		this.markDirty();
+		PacketHandler.sendToAll(new PacketTileSync(this)); // todo
+		return true;
 	}
 
 	@Override
@@ -889,6 +907,8 @@ public class TEThaumicAnalyzer extends TileEntity implements ISidedInventory,
 
 	@Override
 	public boolean canOutputTo(ForgeDirection dir) {
+		if (dir == ForgeDirection.UNKNOWN)
+			return true;
 		EnumSideTA side = this.sideTypes[dir.ordinal()];
 		return side == EnumSideTA.IO
 				|| side == EnumSideTA.OUTPUT
