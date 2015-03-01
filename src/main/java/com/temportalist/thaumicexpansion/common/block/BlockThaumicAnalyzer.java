@@ -21,6 +21,7 @@ import net.minecraft.nbt.NBTTagList;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.IIcon;
 import net.minecraft.util.MathHelper;
+import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 import thaumcraft.api.aspects.Aspect;
@@ -82,6 +83,7 @@ public class BlockThaumicAnalyzer extends net.minecraft.block.Block implements I
 	@SideOnly(Side.CLIENT)
 	@Override
 	public IIcon getIcon(int side, int meta) {
+		// returns only the base textures for the block
 		if (side == this.getDirection(meta).ordinal())
 			side = 3;
 		else if (side > 1)
@@ -173,6 +175,12 @@ public class BlockThaumicAnalyzer extends net.minecraft.block.Block implements I
 		return new ItemStack(Item.getItemFromBlock(this), 1, this.getMetadata(
 				this.getTier(meta), ForgeDirection.EAST
 		));
+	}
+
+	@Override
+	public ItemStack getPickBlock(MovingObjectPosition target, World world, int x, int y,
+			int z, EntityPlayer player) {
+		return this.createStackedBlock(world.getBlockMetadata(x, y, z));
 	}
 
 	@Override

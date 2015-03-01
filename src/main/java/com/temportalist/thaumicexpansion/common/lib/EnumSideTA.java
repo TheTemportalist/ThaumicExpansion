@@ -33,7 +33,7 @@ public enum EnumSideTA {
 
 	private final String name;
 	@SideOnly(Side.CLIENT)
-	private IIcon icons[] = new IIcon[4];
+	private IIcon[] icons = new IIcon[4];
 
 	private EnumSideTA(String name) {
 		this.name = name;
@@ -41,14 +41,18 @@ public enum EnumSideTA {
 
 	@SideOnly(Side.CLIENT)
 	public void registerIcon(IIconRegister reg, String base) {
-		for (int i = 0; i < 3; i++) {
+		for (int i = 0; i < (this == EnumSideTA.NONE ? 4 : 3); i++) {
 			this.icons[i] = reg.registerIcon(base + "/side" + i + "/colours/" + this.name);
 		}
 	}
 
 	@SideOnly(Side.CLIENT)
-	public IIcon getIcon(int side) {
-		return this.icons[side > 1 ? 2 : side];
+	public IIcon getIcon(int side, boolean isFront) {
+		if (isFront)
+			side = 3;
+		else if (side > 1)
+			side = 2;
+		return this.icons[side];
 	}
 
 	public EnumSideTA next() {

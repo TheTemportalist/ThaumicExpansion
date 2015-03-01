@@ -81,7 +81,7 @@ public class ThermalHandler implements ISimpleBlockRenderingHandler {
 			this.renderFace(renderer, dir, block, 0, 0, 0, block.getIcon(i, metadata));
 			if (dir != faceDir)
 				this.renderFace(renderer, dir, block, 0, 0, 0,
-						EnumSideTA.NONE.getIcon(dir.ordinal())
+						EnumSideTA.NONE.getIcon(dir.ordinal(), dir == faceDir)
 				);
 			tess.draw();
 		}

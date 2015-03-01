@@ -1,7 +1,9 @@
 package com.temportalist.thaumicexpansion.common;
 
+import cofh.lib.util.ArrayHashList;
+import cofh.lib.util.helpers.AugmentHelper;
+import cofh.thermalexpansion.block.simple.BlockFrame;
 import cofh.thermalexpansion.item.TEItems;
-import cofh.thermalexpansion.util.crafting.RecipeMachine;
 import cofh.thermalexpansion.util.crafting.RecipeMachineUpgrade;
 import com.temportalist.thaumicexpansion.common.block.BlockThaumicAnalyzer;
 import com.temportalist.thaumicexpansion.common.item.ItemAugment;
@@ -27,19 +29,23 @@ import net.minecraft.block.material.Material;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
-import net.minecraft.inventory.InventoryCrafting;
+import net.minecraft.init.Items;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
+import net.minecraft.item.crafting.IRecipe;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.MathHelper;
+import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.config.Configuration;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.oredict.ShapedOreRecipe;
+import thaumcraft.api.ThaumcraftApi;
 import thaumcraft.api.aspects.Aspect;
 import thaumcraft.api.aspects.AspectList;
+import thaumcraft.api.research.ResearchCategories;
+import thaumcraft.api.research.ResearchItem;
+import thaumcraft.api.research.ResearchPage;
 import thaumcraft.api.research.ScanResult;
 import thaumcraft.common.Thaumcraft;
 import thaumcraft.common.config.ConfigBlocks;
@@ -49,15 +55,14 @@ import thaumcraft.common.lib.research.PlayerKnowledge;
 import thaumcraft.common.lib.research.ScanManager;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * @author TheTemportalist
  */
-@Mod(modid = TEC.MODID, name = "Thaumic Expansion", version = "1.0")
+@Mod(modid = TEC.MODID, name = "Thaumic Expansion", version = "1.0",
+		dependencies = "required-after:Thaumcraft@[4.2,);"
+)
 public class TEC {
 
 	public static final String MODID = "thaumicexpansion";
@@ -185,38 +190,40 @@ public class TEC {
 		TEC.aspectTiers.put(Aspect.ENERGY, 2);
 		TEC.aspectTiers.put(Aspect.EXCHANGE, 2);
 
-		NBTTagCompound blockStackTag = new NBTTagCompound();
-		NBTTagList augmentList = new NBTTagList(); // todo nbt helper to pass a string and ... params for key in
-		NBTTagCompound augmentTag = new NBTTagCompound();
-		augmentTag.setInteger("Slot", 0);
-		new ItemStack(this.playerTracker, 1, 0).writeToNBT(augmentTag);
-		augmentList.appendTag(augmentTag);
-		blockStackTag.setTag("Augments", augmentList);
-		for (int i = 0; i < TEC.machines.length; i++) {
-			TEC.machines[i] = new ItemStack(
-					this.thaumicAnalyzer, 1,
-					this.thaumicAnalyzer.getMetadata(i, ForgeDirection.EAST)
-			);
-			TEC.machines[i].setTagCompound(blockStackTag);
-		}
+		ThaumcraftApi.registerObjectTag(new ItemStack(this.thaumicAnalyzer), new int[] {
+						0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16
+				}, new AspectList().
+						add(Aspect.MIND, 4).
+						add(Aspect.METAL, 2).
+						add(Aspect.MECHANISM, 10).
+						add(Aspect.MAGIC, 7)
+		);
 
 		ItemStack[] augments = new ItemStack[] { new ItemStack(this.playerTracker) };
-		GameRegistry.addRecipe(new RecipeMachine(TEC.machines[0], augments, new Object[] {
-				"iti", " f ", "iri",
-				'i', "ingotThaumium", 't', ConfigItems.itemThaumometer,
-				'f', "thermalexpansion:machineFrame", 'r', TEItems.powerCoilGold
-		}) {
-			@Override
-			public ItemStack getCraftingResult(InventoryCrafting inv) {
-				ItemStack stack = super.getCraftingResult(inv);
-				byte level = stack.getTagCompound().getByte("Level");
-				stack.getTagCompound().removeTag("Level");
-				stack.setItemDamage(TEC.instance.thaumicAnalyzer.getMetadata(
-						level, ForgeDirection.EAST
-				));
-				return stack;
-			}
-		});
+		for (int tier = 0; tier < TEC.machines.length; tier++) {
+			TEC.machines[tier] = new ItemStack(
+					this.thaumicAnalyzer, 1,
+					this.thaumicAnalyzer.getMetadata(tier, ForgeDirection.EAST)
+			);
+			AugmentHelper.writeAugments(TEC.machines[tier], augments);
+		}
+
+		@SuppressWarnings("unchecked")
+		Pair<ItemStack, ItemStack>[] machineRecipeKeys = new Pair[] {
+				new Pair<ItemStack, ItemStack>(TEC.machines[0], BlockFrame.frameMachineBasic),
+				new Pair<ItemStack, ItemStack>(TEC.machines[1], BlockFrame.frameMachineHardened),
+				new Pair<ItemStack, ItemStack>(TEC.machines[2], BlockFrame.frameMachineReinforced),
+				new Pair<ItemStack, ItemStack>(TEC.machines[3], BlockFrame.frameMachineResonant)
+		};
+		List<IRecipe> machineRecipes = new ArrayHashList<IRecipe>();
+		for (Pair<ItemStack, ItemStack> pair : machineRecipeKeys) {
+			machineRecipes.add(new ShapedOreRecipe(pair.getKey(),
+					"iti", " f ", "iri",
+					'i', "ingotThaumium", 't', ConfigItems.itemThaumometer,
+					'f', pair.getValue(), 'r', TEItems.powerCoilGold
+			));
+		}
+
 		@SuppressWarnings("unchecked")
 		Pair<String, String>[] upgradeThings = new Pair[] {
 				new Pair<String, String>("ingotThaumium", "gearGold"),
@@ -225,31 +232,92 @@ public class TEC {
 				new Pair<String, String>("ingotEnderium", "gearEnderium")
 		};
 		for (int i = 1; i < TEC.machines.length; i++) {
-			GameRegistry.addRecipe(new RecipeMachineUpgrade(i, TEC.machines[i], new Object[] {
+			machineRecipes.add(new RecipeMachineUpgrade(i, TEC.machines[i], new Object[] {
 					"a a", " l ", "aba",
 					'a', upgradeThings[i].getKey(), 'b', upgradeThings[i].getValue(),
 					'l', TEC.machines[i - 1]
 			}));
 		}
 
-		GameRegistry.addRecipe(new ShapedOreRecipe(this.playerTracker,
-				"   ", " h ", "   ", 'h', Blocks.skull
-		));
+		String category = "THAUMICEXPANSION";
+		ResearchCategories.registerCategory(category,
+				new ResourceLocation(TEC.MODID, "textures/items/opticalScanner.png"),
+				new ResourceLocation("thaumcraft", "textures/gui/gui_researchback.png")
+		);
 
-		GameRegistry.addRecipe(new ShapedOreRecipe(this.decomposerUpgrade,
-				"   ", " d ", "   ", 'd', new ItemStack(ConfigBlocks.blockTable, 1, 14)
-		));
+		this.addResearchAndRecipe(
+				new ResearchItem("THAUMICANALYZER", category,
+						new AspectList(),
+						0, 0, 0, TEC.machines[0]
+				).setParents("GOGGLES"),
+				machineRecipes.toArray(new IRecipe[machineRecipes.size()]), // todo helper method
+				new ResearchPage("tc.research_page.THAUMICANALYZER.1")
+		);
 
-		GameRegistry.addRecipe(new ShapedOreRecipe(this.itemKeeper,
-				"i i", "ici", " i ",
-				'i', "ingotThaumium", 'c', Blocks.chest
-		));
+		this.addResearchAndRecipe(
+				new ResearchItem("PLAYERTRACKER", category,
+						new AspectList(),
+						-2, 0, 0, new ItemStack(this.playerTracker)
+				).setParents("THAUMICANALYZER"),
+				new IRecipe[] {
+						new ShapedOreRecipe(this.playerTracker,
+								"   ", " h ", "   ", 'h', new ItemStack(Items.skull)
+						)
+				}, new ResearchPage("tc.research_page.PLAYERTRACKER.1")
+		);
 
-		GameRegistry.addRecipe(new ShapedOreRecipe(this.thaumicAdjuster,
-				"i i", "eje", " e ",
-				'i', "ingotThaumium", 'j', ConfigBlocks.blockJar, 'e', "ingotEnderium"
-		));
+		this.addResearchAndRecipe(
+				new ResearchItem("DECOMPOSER", category,
+						new AspectList(),
+						-1, -2, 0, new ItemStack(this.decomposerUpgrade)
+				).setParents("THAUMICANALYZER", "DECONSTRUCTOR"),
+				new IRecipe[] {
+						new ShapedOreRecipe(this.decomposerUpgrade,
+								"   ", " d ", "   ",
+								'd', new ItemStack(ConfigBlocks.blockTable, 1, 14)
+						)
+				}, new ResearchPage("tc.research_page.DECOMPOSER.1")
+		);
 
+		this.addResearchAndRecipe(
+				new ResearchItem("ITEMKEEPER", category,
+						new AspectList(),
+						1, -2, 0, new ItemStack(this.itemKeeper)
+				).setParents("THAUMICANALYZER"),
+				new IRecipe[] {
+						new ShapedOreRecipe(this.itemKeeper,
+								"i i", "ici", " i ",
+								'i', "ingotThaumium", 'c', Blocks.chest
+						)
+				}, new ResearchPage("tc.research_page.ITEMKEEPER.1")
+		);
+
+		this.addResearchAndRecipe(
+				new ResearchItem("THAUMICADJUSTER", category,
+						new AspectList(),
+						2, 0, 0, new ItemStack(this.thaumicAdjuster)
+				).setParents("THAUMICANALYZER"),
+				new IRecipe[] {
+						new ShapedOreRecipe(this.thaumicAdjuster,
+								"i i", "eje", " e ",
+								'i', "ingotThaumium", 'j', new ItemStack(ConfigBlocks.blockJar),
+								'e', "ingotEnderium"
+						)
+				}, new ResearchPage("tc.research_page.THAUMICADJUSTER.1")
+		);
+
+	}
+
+	private void addResearchAndRecipe(ResearchItem research, IRecipe[] recipes,
+			ResearchPage... pages) {
+		List<ResearchPage> allPages = new ArrayList<ResearchPage>(Arrays.asList(pages));
+		for (IRecipe recipe : recipes) {
+			GameRegistry.addRecipe(recipe);
+			allPages.add(new ResearchPage(recipe));
+		}
+		research.setPages(
+				allPages.toArray(new ResearchPage[allPages.size()])
+		).registerResearchItem();
 	}
 
 	@Mod.EventHandler

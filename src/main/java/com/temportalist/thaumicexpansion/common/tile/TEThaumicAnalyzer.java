@@ -2,7 +2,7 @@ package com.temportalist.thaumicexpansion.common.tile;
 
 import cofh.api.energy.EnergyStorage;
 import cofh.api.energy.IEnergyConnection;
-import cofh.api.energy.IEnergyHandler;
+import cofh.api.energy.IEnergyReceiver;
 import cofh.api.energy.IEnergyStorage;
 import cofh.api.tileentity.*;
 import cofh.api.transport.IItemDuct;
@@ -58,7 +58,7 @@ import java.util.*;
 public class TEThaumicAnalyzer extends TileEntity implements ISidedInventory,
 		IOperator,
 		ITileInfoPacketHandler,
-		IEnergyHandler, IEnergyConnection,
+		IEnergyReceiver, IEnergyConnection,
 		IAugmentable, IRedstoneControl,
 		IRotateableTile, IReconfigurableFacing, IReconfigurableSides, ISidedTexture,
 		IAspectContainer, IEssentiaTransport {
@@ -222,12 +222,10 @@ public class TEThaumicAnalyzer extends TileEntity implements ISidedInventory,
 		int side = dir.ordinal();
 		IIcon[] icons = new IIcon[2];
 		icons[0] = this.getBlock().getIcon(side, this.getBlockMetadata());
-		if (dir.ordinal() != ((BlockThaumicAnalyzer) this.getBlock()).getDirection(
-				this.getBlockMetadata()
-		).ordinal())
+		if (dir.ordinal() != this.getBlock().getRotation(this.getBlockMetadata()))
 			icons[1] = this.sideTypes[side] != null ?
-					this.sideTypes[side].getIcon(side) :
-					EnumSideTA.NONE.getIcon(side);
+					this.sideTypes[side].getIcon(side, false) :
+					EnumSideTA.NONE.getIcon(side, false);
 		return icons;
 	}
 
@@ -636,11 +634,6 @@ public class TEThaumicAnalyzer extends TileEntity implements ISidedInventory,
 	}
 
 	@Override
-	public int extractEnergy(ForgeDirection from, int maxExtract, boolean simulate) {
-		return 0;//this.energyStorage.extractEnergy(maxExtract, simulate);
-	}
-
-	@Override
 	public ItemStack[] getAugmentSlots() {
 		return this.augments;
 	}
@@ -793,9 +786,13 @@ public class TEThaumicAnalyzer extends TileEntity implements ISidedInventory,
 
 	@Override
 	public IIcon getTexture(int side, int pass) {
-		return !this.isSideFront(side) ?
-				this.sideTypes[side].getIcon(side) :
-				this.getBlock().getIcon(side, this.getBlockMetadata());
+		if (pass > 0) {
+			//System.out.println(side + ": " + this.sideTypes[side] + ":" + sideTex);
+			return this.sideTypes[side].getIcon(
+					side, side == this.getBlock().getRotation(this.getBlockMetadata())
+			);
+		}
+		return this.getBlock().getIcon(side, this.getBlockMetadata());
 	}
 
 	@Override
@@ -1016,6 +1013,7 @@ public class TEThaumicAnalyzer extends TileEntity implements ISidedInventory,
 		}
 		else if (type.equals("SIDE")) {
 			this.sideTypes[packet.getInt()] = EnumSideTA.values()[packet.getInt()];
+			this.worldObj.markBlockForUpdate(this.xCoord, this.yCoord, this.zCoord);
 		}
 	}
 
