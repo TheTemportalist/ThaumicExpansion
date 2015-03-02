@@ -7,6 +7,7 @@ import com.temportalist.thaumicexpansion.common.tile.TEThaumicAnalyzer;
 import cpw.mods.fml.common.registry.GameRegistry;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
+import net.minecraft.block.Block;
 import net.minecraft.block.ITileEntityProvider;
 import net.minecraft.block.material.Material;
 import net.minecraft.client.renderer.texture.IIconRegister;
@@ -35,7 +36,7 @@ import java.util.List;
 /**
  * @author TheTemportalist
  */
-public class BlockThaumicAnalyzer extends net.minecraft.block.Block implements ITileEntityProvider {
+public class BlockThaumicAnalyzer extends Block implements ITileEntityProvider {
 
 	private final String modid, name;
 
@@ -55,20 +56,21 @@ public class BlockThaumicAnalyzer extends net.minecraft.block.Block implements I
 		return "tile." + this.modid + ":" + this.name;
 	}
 
-	@SideOnly(Side.CLIENT)
 	/**
 	 * Tiers -> 4
 	 * Faces:
-	 * 	0 -> bottom
-	 * 	1 -> top
-	 * 	2 -> front
-	 * 	3 -> sides
+	 * 0 -> bottom
+	 * 1 -> top
+	 * 2 -> front
+	 * 3 -> sides
 	 */
-	private IIcon[][] icons = new IIcon[4][4];
+	@SideOnly(Side.CLIENT)
+	private IIcon[][] icons;
 
 	@SideOnly(Side.CLIENT)
 	@Override
 	public void registerBlockIcons(IIconRegister reg) {
+		this.icons = new IIcon[4][4];
 		String base = this.modid + ":" + this.name;
 		for (int side = 0; side < 4; side++) {
 			this.icons[side] = new IIcon[4];
