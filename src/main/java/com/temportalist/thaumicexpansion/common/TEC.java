@@ -61,7 +61,7 @@ import java.util.*;
  * @author TheTemportalist
  */
 @Mod(modid = TEC.MODID, name = "Thaumic Expansion", version = "1.0",
-		dependencies = "required-after:Thaumcraft@[4.2,);"
+		dependencies = "required-after:Thaumcraft@[4.2,);required-after:CoFHCore@[1.7.10R3.0.0RC5,);"
 )
 public class TEC {
 
@@ -135,7 +135,11 @@ public class TEC {
 			public void addInformation(ItemStack stack, EntityPlayer player,
 					List list, boolean something) {
 				if (stack.hasTagCompound()) {
-					list.add("Player UUID: " + stack.getTagCompound().getString("playerUUID"));
+					/*
+					list.add("Player UUID: " + TEC.idToUsername.get(
+							UUID.fromString(stack.getTagCompound().getString("playerUUID"))
+					));
+					*/
 				}
 			}
 		};

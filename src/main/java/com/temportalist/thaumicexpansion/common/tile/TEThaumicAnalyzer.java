@@ -80,6 +80,11 @@ public class TEThaumicAnalyzer extends TileEntity implements ISidedInventory,
 	ControlMode currentControl = ControlMode.DISABLED;
 	boolean powered = false;
 
+	public void updateForTier(int tier) {
+		this.energyStorage.setCapacity(TEC.maxEnergyStorage * (tier + 1));
+		this.augments = new ItemStack[tier + 3];
+	}
+
 	@Override
 	public void updateEntity() {
 		if (this.augmentList.containsKey(EnumAugmentTA.DECOMPOSER)) {
@@ -98,7 +103,7 @@ public class TEThaumicAnalyzer extends TileEntity implements ISidedInventory,
 		// todo time energy of operation
 		if (this.currentOperation == null) {
 			this.currentOperation = new OperationAnalyzer(
-					this.getAugmentedTime(2),
+					this.getAugmentedTime(10),
 					this.getAugmentedEnergy(20)
 			);
 			this.currentOperation.updateAugments(this, this.augmentList.keySet());
@@ -135,7 +140,7 @@ public class TEThaumicAnalyzer extends TileEntity implements ISidedInventory,
 	private void decomposerUpdate() {
 		if (this.currentOperation == null) {
 			this.currentOperation = new OperationDecomposer(
-					this.getBlock().getTier(this.getBlockMetadata())
+					this.getBlock().getTier(this.getBlockMetadata()), this
 			);
 		}
 		if (this.canOperate() && this.getInput() != null) {
@@ -195,14 +200,14 @@ public class TEThaumicAnalyzer extends TileEntity implements ISidedInventory,
 		System.out.println("finished");
 	}
 
-	private int getAugmentedTime(int baseTimeInTicks) {
+	public int getAugmentedTime(int baseTimeInTicks) {
 		for (EnumAugmentTA augment : this.augmentList.keySet()) {
 			baseTimeInTicks *= augment.getTimeMultiplier();
 		}
 		return baseTimeInTicks;
 	}
 
-	private int getAugmentedEnergy(int baseRequirement) {
+	public int getAugmentedEnergy(int baseRequirement) {
 		for (EnumAugmentTA augment : this.augmentList.keySet()) {
 			baseRequirement *= augment.getEnergyRequirementMultiplier();
 		}

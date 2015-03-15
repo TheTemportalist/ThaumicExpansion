@@ -23,7 +23,7 @@ public class OperationDecomposer implements IOperation {
 	private int machineTier;
 	private double secondaryChanceMult = 1d;
 
-	public OperationDecomposer(int decomposerTier) {
+	public OperationDecomposer(int decomposerTier, TEThaumicAnalyzer tile) {
 		this.machineTier = decomposerTier;
 		Aspect[] aspects = this.outputAspects.getAspects();
 		int energy = 0;
@@ -37,8 +37,8 @@ public class OperationDecomposer implements IOperation {
 			energy += stats[0];
 			time += stats[1];
 		}
-		this.maxTicks = time;
-		this.energyCost = energy;
+		this.maxTicks = tile.getAugmentedTime(time);
+		this.energyCost = tile.getAugmentedEnergy(energy);
 	}
 
 	private AspectList filterAspects(AspectList aspectList, int machineTier,
