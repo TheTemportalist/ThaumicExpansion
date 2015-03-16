@@ -32,7 +32,7 @@ public interface IOperation {
 
 	public Object getCosts();
 
-	// todo see AspectList for nice nbt methods for INBTSaver
+	// todo warning see AspectList for nice nbt methods for INBTSaver
 
 	public void writeTo(NBTTagCompound tagCom, String key);
 

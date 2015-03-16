@@ -7,6 +7,7 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.IIcon;
@@ -37,6 +38,11 @@ public class ItemAugment extends Item implements IAugmentItem {
 
 	public ItemAugment(String modid, String base) {
 		this(modid, base, base);
+	}
+
+	@Override
+	public void addInformation(ItemStack stack, EntityPlayer player, List list, boolean something) {
+		list.set(0, "Augment: " + list.get(0));
 	}
 
 	@Override

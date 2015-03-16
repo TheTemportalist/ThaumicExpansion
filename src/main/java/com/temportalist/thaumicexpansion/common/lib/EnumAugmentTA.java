@@ -11,6 +11,7 @@ public enum EnumAugmentTA {
 	INTEGRATED_SERVO(0),
 	// redstone control
 	INTEGRATED_REDSTONE(32),
+	INTEGRATED_FRAMEWORK(16),
 	SECONDARY_RECEPTION_COIL(128, 2, 3, new double[] { .95, 1, 1, 1 }),
 	OVERCLOCK_GEARBOX(129, 4, 8, new double[] { .85, 1, 1, 1 }),
 	SPACE_TIME_FLUX(130, 8, 20, new double[] { .70, 1, 1, 1 }),

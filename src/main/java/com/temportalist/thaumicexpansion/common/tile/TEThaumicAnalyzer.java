@@ -3,15 +3,18 @@ package com.temportalist.thaumicexpansion.common.tile;
 import cofh.api.energy.EnergyStorage;
 import cofh.api.energy.IEnergyConnection;
 import cofh.api.energy.IEnergyReceiver;
-import cofh.api.energy.IEnergyStorage;
 import cofh.api.tileentity.*;
 import cofh.api.transport.IItemDuct;
 import cofh.core.network.ITileInfoPacketHandler;
 import cofh.core.network.PacketCoFHBase;
 import cofh.core.network.PacketHandler;
 import cofh.core.network.PacketTileInfo;
+import cofh.lib.util.helpers.BlockHelper;
 import cofh.lib.util.helpers.EnergyHelper;
 import cofh.lib.util.position.IRotateableTile;
+import cofh.thermalexpansion.block.machine.BlockMachine;
+import cofh.thermalexpansion.block.machine.TileMachineBase;
+import cofh.thermalexpansion.util.Utils;
 import com.temportalist.thaumicexpansion.common.TEC;
 import com.temportalist.thaumicexpansion.common.block.BlockThaumicAnalyzer;
 import com.temportalist.thaumicexpansion.common.lib.*;
@@ -55,7 +58,7 @@ import java.util.*;
 /**
  * @author TheTemportalist
  */
-public class TEThaumicAnalyzer extends TileEntity implements ISidedInventory,
+public class TEThaumicAnalyzer extends TileMachineBase implements ISidedInventory,
 		IOperator,
 		ITileInfoPacketHandler,
 		IEnergyReceiver, IEnergyConnection,
@@ -67,9 +70,9 @@ public class TEThaumicAnalyzer extends TileEntity implements ISidedInventory,
 
 	public final int INPUT_MAIN = 0, INPUT_CAPACITOR = 1, OUTPUT_MAIN = 2;
 
-	protected EnergyStorage energyStorage = new EnergyStorage(TEC.maxEnergyStorage);
-	private ItemStack[] stacks = new ItemStack[3];
-	private ItemStack[] augments = new ItemStack[3];
+	//protected EnergyStorage energyStorage = new EnergyStorage(TEC.maxEnergyStorage);
+	//private ItemStack[] stacks = new ItemStack[3];
+	//private ItemStack[] augments = new ItemStack[3];
 	private HashMap<EnumAugmentTA, Integer> augmentList = new HashMap<EnumAugmentTA, Integer>();
 	private AspectList aspects = new AspectList();
 	private int currentColumnOffset = 0;
@@ -77,16 +80,57 @@ public class TEThaumicAnalyzer extends TileEntity implements ISidedInventory,
 	private IOperation currentOperation = null;
 
 	EnumSideTA[] sideTypes = new EnumSideTA[6];
-	ControlMode currentControl = ControlMode.DISABLED;
-	boolean powered = false;
+
+	public TEThaumicAnalyzer() {
+		this.inventory = new ItemStack[3];
+
+		this.sideConfig = new SideConfig();
+		this.sideConfig.numGroup = EnumSideTA.values().length;
+		this.sideConfig.slotGroups = EnumSideTA.getSlotGroups();
+		this.sideConfig.allowInsertion = EnumSideTA.getInputs();
+		this.sideConfig.allowExtraction = EnumSideTA.getOutputs();
+		this.sideConfig.sideTex = new int[] { 0, 0, 0 };
+		this.sideConfig.defaultSides = EnumSideTA.getDefaultSiding();
+
+		this.energyConfig = new EnergyConfig();
+		this.energyConfig.setParamsPower(20);
+		this.energyStorage = new EnergyStorage(this.energyConfig.maxEnergy);
+
+		this.setDefaultSides();
+
+	}
+
+	@Override
+	public String getName() {
+		return "Thaumic Analyzer";
+	}
+
+	@Override
+	public int getType() {
+		return BlockMachine.Types.FURNACE.ordinal();
+	}
+
+	private int getTier() {
+		return this.getBlock().getTier(this.getBlockMetadata());
+	}
 
 	public void updateForTier(int tier) {
 		this.energyStorage.setCapacity(TEC.maxEnergyStorage * (tier + 1));
-		this.augments = new ItemStack[tier + 3];
+		this.energyStorage.setMaxTransfer(this.energyConfig.maxPower * ENERGY_TRANSFER[tier]);
+		this.augments = new ItemStack[AUGMENT_COUNT[tier]];
+		this.augmentStatus = new boolean[this.augments.length];
+
+	}
+
+	@Override
+	protected void onLevelChange() {
+		if (this.worldObj != null)
+			this.updateForTier(this.getTier());
 	}
 
 	@Override
 	public void updateEntity() {
+		this.chargeEnergy();
 		if (this.augmentList.containsKey(EnumAugmentTA.DECOMPOSER)) {
 			if (this.currentOperation instanceof OperationAnalyzer)
 				this.currentOperation = null;
@@ -97,10 +141,10 @@ public class TEThaumicAnalyzer extends TileEntity implements ISidedInventory,
 				this.currentOperation = null;
 			this.analyzerUpdate();
 		}
+		this.checkOutput();
 	}
 
 	private void analyzerUpdate() {
-		// todo time energy of operation
 		if (this.currentOperation == null) {
 			this.currentOperation = new OperationAnalyzer(
 					this.getAugmentedTime(10),
@@ -128,7 +172,8 @@ public class TEThaumicAnalyzer extends TileEntity implements ISidedInventory,
 						}
 						this.currentOperation = null;
 						this.markDirty();
-						PacketHandler.sendToAll(new PacketTileSync(this)); // todo narrow syncing
+						// todo narrow syncing: stacks, energy, operation
+						PacketHandler.sendToAll(new PacketTileSync(this));
 					}
 				}
 			}
@@ -181,23 +226,72 @@ public class TEThaumicAnalyzer extends TileEntity implements ISidedInventory,
 
 	@Override
 	public ItemStack getInput() {
-		return this.stacks[this.INPUT_MAIN];
+		return this.inventory[this.INPUT_MAIN];
 	}
 
 	@Override
 	public ItemStack getOutput() {
-		return this.stacks[this.OUTPUT_MAIN];
+		return this.inventory[this.OUTPUT_MAIN];
+	}
+
+	@Override
+	public int getChargeSlot() {
+		return this.INPUT_CAPACITOR;
 	}
 
 	@Override
 	public void finishedOperation(ItemStack setInput, ItemStack toOutput) {
-		this.stacks[this.INPUT_MAIN] = setInput;
-		if (this.stacks[this.OUTPUT_MAIN] == null)
-			this.stacks[this.OUTPUT_MAIN] = toOutput;
+		System.out.println("finished"); // todo remove the print
+		this.inventory[this.INPUT_MAIN] = setInput;
+		if (this.inventory[this.OUTPUT_MAIN] == null)
+			this.inventory[this.OUTPUT_MAIN] = toOutput;
 		else if (toOutput != null)
-			this.stacks[this.OUTPUT_MAIN].stackSize += toOutput.stackSize;
+			this.inventory[this.OUTPUT_MAIN].stackSize += toOutput.stackSize;
 		this.markDirty();
-		System.out.println("finished");
+
+	}
+
+	public void checkOutput() {
+		if (this.augmentAutoTransfer && this.getOutput() != null) {
+			for (int side = 0; side < this.sideTypes.length; side++) {
+				if (this.sideConfig.allowExtraction[side]) {
+					if (this.transfer(this.OUTPUT_MAIN, AUTO_EJECT[this.getTier()], side)) {
+						this.markDirty();
+						break;
+					}
+				}
+			}
+		}
+	}
+
+	private boolean transfer(int slot, int maxAmount, int side) {
+		ItemStack stackToTransfer = this.inventory[slot].copy();
+		int amountToTransfer = Math.min(maxAmount, stackToTransfer.stackSize);
+		stackToTransfer.stackSize = amountToTransfer;
+
+		TileEntity tileInDirection = BlockHelper.getAdjacentTileEntity(this, side);
+
+		if (Utils.isAccessibleInventory(tileInDirection, side)) {
+			int leftoverSize = Utils.addToInventory(tileInDirection, side, stackToTransfer);
+			if (leftoverSize >= maxAmount)
+				return false;
+			this.inventory[slot].stackSize = leftoverSize;
+			if (this.inventory[slot].stackSize <= 0)
+				this.inventory[slot] = null;
+			return true;
+		}
+
+		if (Utils.isPipeTile(tileInDirection)) {
+			int i = Utils.addToPipeTile(tileInDirection, side, stackToTransfer);
+			if (i <= 0)
+				return false;
+			this.inventory[slot].stackSize -= i;
+			if (this.inventory[slot].stackSize <= 0)
+				this.inventory[slot] = null;
+			return true;
+		}
+
+		return false;
 	}
 
 	public int getAugmentedTime(int baseTimeInTicks) {
@@ -325,11 +419,14 @@ public class TEThaumicAnalyzer extends TileEntity implements ISidedInventory,
 	}
 
 	public void setAugments(ItemStack[] augments) {
+		this.augments = augments.clone();
+		/*
 		for (int i = 0; i < augments.length; i++) {
 			if (i < this.augments.length) {
 				this.augments[i] = augments[i];
 			}
 		}
+		*/
 		this.installAugments();
 	}
 
@@ -448,17 +545,17 @@ public class TEThaumicAnalyzer extends TileEntity implements ISidedInventory,
 	// ~~~~~~~~~~~~~~~ Below is background functionality, Tinker at your own risk ~~~~~~~~~~~~~~~
 
 	private boolean isValidSlot(int slot) {
-		return 0 <= slot && slot < this.stacks.length;
+		return 0 <= slot && slot < this.inventory.length;
 	}
 
 	public void dropAllInventory(World world, int x, int y, int z) {
-		for (ItemStack stack : this.stacks)
+		for (ItemStack stack : this.inventory)
 			if (stack != null)
 				this.dropStack(world, x, y, z, stack);
 		for (ItemStack stack : this.augments)
 			if (stack != null)
 				this.dropStack(world, x, y, z, stack);
-		// todo essentia
+		// todo warning essentia?
 	}
 
 	private void dropStack(World world, int x, int y, int z, ItemStack stack) {
@@ -496,44 +593,8 @@ public class TEThaumicAnalyzer extends TileEntity implements ISidedInventory,
 	}
 
 	@Override
-	public int getSizeInventory() {
-		return this.stacks.length;
-	}
-
-	@Override
-	public int getInventoryStackLimit() {
-		return 64;
-	}
-
-	@Override
-	public boolean hasCustomInventoryName() {
-		return false;
-	}
-
-	@Override
-	public String getInventoryName() {
-		return "Decomposer";
-	}
-
-	@Override
-	public ItemStack getStackInSlot(int slot) {
-		return this.isValidSlot(slot) ? this.stacks[slot] : null;
-	}
-
-	@Override
-	public ItemStack getStackInSlotOnClosing(int slot) {
-		return this.getStackInSlot(slot);
-	}
-
-	@Override
-	public void setInventorySlotContents(int slot, ItemStack stack) {
-		if (this.isValidSlot(slot)) {
-			if (stack == null)
-				this.stacks[slot] = null;
-			else
-				this.stacks[slot] = stack.copy();
-			//this.markDirty();
-		}
+	public boolean isItemValid(ItemStack stack, int slot, int side) {
+		return this.isItemValidForSlot(slot, stack);
 	}
 
 	@Override
@@ -551,22 +612,6 @@ public class TEThaumicAnalyzer extends TileEntity implements ISidedInventory,
 		return false;
 	}
 
-	@Override
-	public ItemStack decrStackSize(int slot, int amount) {
-		ItemStack stack = null;
-		if (this.isValidSlot(slot) && this.stacks[slot] != null) {
-			if (this.stacks[slot].stackSize <= amount) {
-				amount = this.stacks[slot].stackSize;
-			}
-			stack = this.stacks[slot].splitStack(amount);
-			if (this.stacks[slot].stackSize <= 0) {
-				this.stacks[slot] = null;
-			}
-		}
-		this.markDirty();
-		return stack;
-	}
-
 	private boolean canInput_Item(int side) {
 		return this.sideTypes[side] == EnumSideTA.INPUT_ITEM ||
 				this.sideTypes[side] == EnumSideTA.IO;
@@ -579,99 +624,20 @@ public class TEThaumicAnalyzer extends TileEntity implements ISidedInventory,
 	}
 
 	@Override
-	public int[] getAccessibleSlotsFromSide(int side) {
-		if (this.sideTypes[side] == EnumSideTA.IO)
-			return new int[] { this.INPUT_MAIN, this.INPUT_CAPACITOR, this.OUTPUT_MAIN };
-		else if (this.canInput_Item(side))
-			return new int[] { this.INPUT_MAIN, this.INPUT_CAPACITOR };
-		else if (this.canOutput_Item(side))
-			return new int[] { this.OUTPUT_MAIN };
-		else
-			return new int[0];
-	}
-
-	@Override
-	public boolean canInsertItem(int slot, ItemStack stack, int side) {
-		return this.isValidSlot(slot) && this.canInput_Item(side)
-				&& this.isItemValidForSlot(slot, stack);
-	}
-
-	@Override
-	public boolean canExtractItem(int slot, ItemStack stack, int side) {
-		return this.isValidSlot(slot) && slot == this.OUTPUT_MAIN && this.canOutput_Item(side);
-	}
-
-	@Override
-	public boolean isUseableByPlayer(EntityPlayer player) {
-		return true; // todo only true if has experience in thaumcraft
-	}
-
-	@Override
-	public void openInventory() {
-	}
-
-	@Override
-	public void closeInventory() {
-	}
-
-	@Override
-	public boolean canConnectEnergy(ForgeDirection from) {
-		return true;
-	}
-
-	public IEnergyStorage getEnergyStorage() {
-		return this.energyStorage;
-	}
-
-	@Override
-	public int getEnergyStored(ForgeDirection from) {
-		return this.energyStorage.getEnergyStored();
-	}
-
-	@Override
-	public int getMaxEnergyStored(ForgeDirection from) {
-		return this.energyStorage.getMaxEnergyStored();
-	}
-
-	@Override
-	public int receiveEnergy(ForgeDirection from, int maxReceive, boolean simulate) {
-		return this.energyStorage.receiveEnergy(maxReceive, simulate);
-	}
-
-	@Override
-	public ItemStack[] getAugmentSlots() {
-		return this.augments;
-	}
-
-	/**
-	 * Ran when slots are set in container
-	 */
-	@Override
-	public void installAugments() {
-		int augmentPreSize = this.augmentList.size();
+	protected boolean installAugment(int augmentSlot) {
+		if (this.currentOperation != null && this.currentOperation.isRunning())
+			this.currentOperation.reset();
 		this.augmentList.clear();
 		for (int slot = 0; slot < this.augments.length; slot++) {
 			if (this.augments[slot] != null) {
-				//FMLLog.info(this.augments[slot].getDisplayName());
-				//System.out.println(slot + "-> " + TEC.getFullName(this.augments[slot]));
 				EnumAugmentTA augmentEnum = EnumAugmentTA.getByName(
 						TEC.getFullName(this.augments[slot])
 				);
-				//System.out.println("Enum: " + augmentEnum);
 				if (augmentEnum != null)
 					this.augmentList.put(augmentEnum, slot);
 			}
 		}
-		if (augmentPreSize != this.augmentList.size() && this.currentOperation != null) {
-			// if you change the augments, you will reset the progress
-			this.currentOperation.reset();
-			this.currentOperation.updateAugments(this, this.augmentList.keySet());
-		}
-	}
-
-	@Override
-	public boolean[] getAugmentStatus() {
-		return new boolean[0];
+		return super.installAugment(augmentSlot);
 	}
 
 	@Override
@@ -699,94 +665,71 @@ public class TEThaumicAnalyzer extends TileEntity implements ISidedInventory,
 		return ForgeDirection.getOrientation(this.getFacing());
 	}
 
-	/**
-	 * @return the direction the block is facing
-	 */
 	@Override
-	public int getFacing() {
-		return this.getBlock().getRotation(this.getBlockMetadata());
-	}
-
-	/**
-	 * @return whether this block can face up/down
-	 */
-	@Override
-	public boolean allowYAxisFacing() {
-		return false;
-	}
-
-	/*
-	// todo to origin
-	private ForgeDirection[] clockwise = new ForgeDirection[] {
-			ForgeDirection.NORTH,
-			ForgeDirection.EAST,
-			ForgeDirection.SOUTH,
-			ForgeDirection.WEST
-	};
-	*/
-
-	/**
-	 * Rotate clockwise
-	 *
-	 * @return
-	 */
-	@Override
-	public boolean rotateBlock() { // todo is this broken?
-		return this.setFacing(
-				this.getBlock().getDirection(
-						this.getBlockMetadata()
-				).getRotation(ForgeDirection.UP).ordinal()
-		);
-	}
-
-	@Override
-	public boolean setFacing(int i) {
+	public boolean setFacing(int dirOrdinal) {
 		this.getBlock().setTierAndDir(
-				this.getWorldObj(), this.xCoord, this.yCoord, this.zCoord,
+				this.worldObj, this.xCoord, this.yCoord, this.zCoord,
 				this.getBlock().getTier(this.getBlockMetadata()),
-				ForgeDirection.getOrientation(i)
+				ForgeDirection.values()[dirOrdinal]
 		);
-		return true;
-	}
-
-	private boolean isSideFront(int side) {
-		return side == this.getBlock().getRotation(this.getBlockMetadata());
+		return super.setFacing(dirOrdinal);
 	}
 
 	@Override
-	public boolean decrSide(int side) {
-		return this.setSide(side, this.sideTypes[side].last().ordinal());
+	public boolean decrSide(int face) {
+		boolean ret = super.decrSide(face);
+		this.sideTypes[face] = EnumSideTA.values()[this.sideCache[face]];
+		PacketHandler.sendToServer(
+				new PacketTileInfo(this).addString("SIDE").addInt(face).addInt(
+						(int) this.sideCache[face]
+				)
+		);
+		this.worldObj.markBlockForUpdate(this.xCoord, this.yCoord, this.zCoord);
+		return ret;
 	}
 
 	@Override
-	public boolean incrSide(int side) {
-		return this.setSide(side, this.sideTypes[side].next().ordinal());
+	public boolean incrSide(int face) {
+		boolean ret = super.incrSide(face);
+		this.sideTypes[face] = EnumSideTA.values()[this.sideCache[face]];
+		PacketHandler.sendToServer(
+				new PacketTileInfo(this).addString("SIDE").addInt(face).addInt(
+						(int) this.sideCache[face]
+				)
+		);
+		this.worldObj.markBlockForUpdate(this.xCoord, this.yCoord, this.zCoord);
+		return ret;
 	}
 
 	@Override
-	public boolean setSide(int side, int index) {
-		if (!this.isSideFront(side)) {
-			this.sideTypes[side] = EnumSideTA.values()[index];
-			PacketHandler.sendToServer(
-					new PacketTileInfo(this).
-							addString("SIDE").addInt(side).addInt(this.sideTypes[side].ordinal())
-			);
-			this.worldObj.markBlockForUpdate(this.xCoord, this.yCoord, this.zCoord);
-			return true;
-		}
-		return false;
+	public boolean setSide(int face, int next) {
+		boolean ret = super.setSide(face, next);
+		this.sideTypes[face] = EnumSideTA.values()[this.sideCache[face]];
+		PacketHandler.sendToServer(
+				new PacketTileInfo(this).addString("SIDE").addInt(face).addInt(
+						(int) this.sideCache[face]
+				)
+		);
+		this.worldObj.markBlockForUpdate(this.xCoord, this.yCoord, this.zCoord);
+		return ret;
 	}
 
 	@Override
 	public boolean resetSides() {
-		for (int side = 0; side < this.sideTypes.length; side++)
-			this.sideTypes[side] = EnumSideTA.NONE;
-		return true;
+		boolean ret = super.resetSides();
+		this.fetchSides(this.sideCache);
+		PacketHandler.sendToServer(
+				new PacketTileInfo(this).addString("SIDE").addInt(-1).addInt(-1)
+						.addByteArray(this.sideCache)
+		);
+		this.worldObj.markBlockForUpdate(this.xCoord, this.yCoord, this.zCoord);
+		return ret;
 	}
 
-	@Override
-	public int getNumConfig(int side) {
-		return !this.isSideFront(side) ? EnumSideTA.values().length : 0;
+	private void fetchSides(byte[] cache) {
+		for (int i = 0; i < 6; i++) {
+			this.sideTypes[i] = EnumSideTA.values()[cache[i]];
+		}
 	}
 
 	@Override
@@ -798,30 +741,6 @@ public class TEThaumicAnalyzer extends TileEntity implements ISidedInventory,
 			);
 		}
 		return this.getBlock().getIcon(side, this.getBlockMetadata());
-	}
-
-	@Override
-	public void setControl(ControlMode controlMode) {
-		this.currentControl = controlMode;
-		PacketHandler.sendToServer(
-				new PacketTileInfo(this).
-						addString("CONTROLMODE").addInt(this.currentControl.ordinal())
-		);
-	}
-
-	@Override
-	public ControlMode getControl() {
-		return this.currentControl;
-	}
-
-	@Override
-	public void setPowered(boolean b) {
-		this.powered = b;
-	}
-
-	@Override
-	public boolean isPowered() {
-		return this.powered;
 	}
 
 	// Thaumcraft things
@@ -859,7 +778,8 @@ public class TEThaumicAnalyzer extends TileEntity implements ISidedInventory,
 		else if (contained == amount)
 			this.aspects.remove(aspect);
 		this.markDirty();
-		PacketHandler.sendToAll(new PacketTileSync(this)); // todo
+		// todo sync only aspects
+		PacketHandler.sendToAll(new PacketTileSync(this));
 		return true;
 	}
 
@@ -1014,10 +934,20 @@ public class TEThaumicAnalyzer extends TileEntity implements ISidedInventory,
 			}
 		}
 		else if (type.equals("CONTROLMODE")) {
-			this.currentControl = ControlMode.values()[packet.getInt()];
+			this.rsMode = ControlMode.values()[packet.getInt()];
 		}
 		else if (type.equals("SIDE")) {
-			this.sideTypes[packet.getInt()] = EnumSideTA.values()[packet.getInt()];
+			int side = packet.getInt();
+			int state = packet.getInt();
+			if (side == -1) {
+				byte[] cache = new byte[6];
+				packet.getByteArray(cache);
+				this.fetchSides(cache);
+			}
+			else {
+				this.sideCache[side] = (byte) state;
+				this.sideTypes[side] = EnumSideTA.values()[state];
+			}
 			this.worldObj.markBlockForUpdate(this.xCoord, this.yCoord, this.zCoord);
 		}
 	}
@@ -1040,41 +970,21 @@ public class TEThaumicAnalyzer extends TileEntity implements ISidedInventory,
 	public void writeToNBT(NBTTagCompound tagCom) {
 		super.writeToNBT(tagCom);
 
-		// todo write auto thing in TEWrapper for Origin inventories
-		// todo to automate the reading/writing of arrays
-		NBTTagList stackTags = new NBTTagList();
-		for (int slot = 0; slot < this.getSizeInventory(); slot++) {
-			if (this.stacks[slot] != null) {
-				NBTTagCompound stackTag = new NBTTagCompound();
-				this.stacks[slot].writeToNBT(stackTag);
-				stackTag.setInteger("slot", (byte) slot);
-				stackTags.appendTag(stackTag);
-			}
-		}
-		tagCom.setTag("stackTags", stackTags);
+		// todo warning write auto thing in TEWrapper for Origin inventories
+		// todo warning to automate the reading/writing of arrays
 
-		tagCom.setInteger("augmentSize", this.augments.length);
-		NBTTagList augmentTags = new NBTTagList();
-		for (int slot = 0; slot < this.augments.length; slot++) {
-			if (this.augments[slot] != null) {
-				NBTTagCompound augmentTag = new NBTTagCompound();
-				this.augments[slot].writeToNBT(augmentTag);
-				augmentTag.setInteger("slot", slot);
-				augmentTags.appendTag(augmentTag);
-			}
-		}
-		tagCom.setTag("augmentTags", augmentTags);
-
-		this.energyStorage.writeToNBT(tagCom);
+		//this.energyStorage.writeToNBT(tagCom);
 
 		if (this.currentOperation != null) {
 			tagCom.setString("operationClass", this.currentOperation.getClass().getCanonicalName());
 			this.currentOperation.writeTo(tagCom, "operation");
 		}
 
+		/*
 		for (int side = 0; side < this.sideTypes.length; side++)
 			if (this.sideTypes[side] != null)
 				tagCom.setInteger("side" + side, this.sideTypes[side].ordinal());
+		*/
 
 		NBTTagList augmentList = new NBTTagList();
 		for (EnumAugmentTA augment : this.augmentList.keySet()) {
@@ -1087,31 +997,13 @@ public class TEThaumicAnalyzer extends TileEntity implements ISidedInventory,
 
 		this.aspects.writeToNBT(tagCom, "aspects");
 
-		tagCom.setInteger("controlMode", this.currentControl.ordinal());
-		tagCom.setBoolean("powered", this.powered);
-
 	}
 
 	@Override
 	public void readFromNBT(NBTTagCompound tagCom) {
 		super.readFromNBT(tagCom);
 
-		NBTTagList stackTags = tagCom.getTagList("stackTags", 10);
-		for (int i = 0; i < stackTags.tagCount(); i++) {
-			NBTTagCompound stackTag = stackTags.getCompoundTagAt(i);
-			int slot = stackTag.getInteger("slot") & 255;
-			this.stacks[slot] = ItemStack.loadItemStackFromNBT(stackTag);
-		}
-
-		this.augments = new ItemStack[tagCom.getInteger("augmentSize")];
-		NBTTagList augmentTags = tagCom.getTagList("augmentTags", 10);
-		for (int i = 0; i < augmentTags.tagCount(); i++) {
-			NBTTagCompound augmentTag = augmentTags.getCompoundTagAt(i);
-			int slot = augmentTag.getInteger("slot");
-			this.augments[slot] = ItemStack.loadItemStackFromNBT(augmentTag);
-		}
-
-		this.energyStorage.readFromNBT(tagCom);
+		//this.energyStorage.readFromNBT(tagCom);
 
 		if (tagCom.hasKey("operationClass")) {
 			try {
@@ -1123,10 +1015,13 @@ public class TEThaumicAnalyzer extends TileEntity implements ISidedInventory,
 			}
 		}
 
+		/*
 		for (int side = 0; side < 6; side++) {
 			this.sideTypes[side] = EnumSideTA.values()
 					[tagCom.getInteger("side" + side)];
 		}
+		*/
+		this.fetchSides(this.sideCache);
 
 		this.augmentList.clear();
 		NBTTagList augmentList = tagCom.getTagList("augmentList", 10);
@@ -1141,9 +1036,36 @@ public class TEThaumicAnalyzer extends TileEntity implements ISidedInventory,
 
 		this.aspects.readFromNBT(tagCom, "aspects");
 
-		this.currentControl = ControlMode.values()[tagCom.getInteger("controlMode")];
-		this.powered = tagCom.getBoolean("powered");
+	}
 
+	@Override
+	public void writeInventoryToNBT(NBTTagCompound tagCom) {
+		super.writeInventoryToNBT(tagCom);
+		tagCom.setInteger("InventorySize", this.inventory.length);
+	}
+
+	@Override
+	public void readInventoryFromNBT(NBTTagCompound tagCom) {
+		if (tagCom.hasKey("InventorySize"))
+			this.inventory = new ItemStack[tagCom.getInteger("InventorySize")];
+		super.readInventoryFromNBT(tagCom);
+	}
+
+	@Override
+	public void writeAugmentsToNBT(NBTTagCompound tagCom) {
+		super.writeAugmentsToNBT(tagCom);
+		System.out.println("Writing Size " + this.augments.length);
+		tagCom.setInteger("AugmentsSize", this.augments.length);
+	}
+
+	@Override
+	public void readAugmentsFromNBT(NBTTagCompound tagCom) {
+		if (tagCom.hasKey("AugmentsSize")) {
+			System.out.println("Reading Size " + tagCom.getInteger("AugmentsSize"));
+			this.augments = new ItemStack[tagCom.getInteger("AugmentsSize")];
+			this.augmentStatus = new boolean[this.augments.length];
+		}
+		super.readAugmentsFromNBT(tagCom);
 	}
 
 }

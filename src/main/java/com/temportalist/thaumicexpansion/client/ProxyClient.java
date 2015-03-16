@@ -1,6 +1,6 @@
 package com.temportalist.thaumicexpansion.client;
 
-import com.temportalist.thaumicexpansion.client.gui.GuiDecomposer;
+import com.temportalist.thaumicexpansion.client.gui.GuiAnalyzer;
 import com.temportalist.thaumicexpansion.common.ProxyCommon;
 import com.temportalist.thaumicexpansion.common.inventory.ContainerThaumicAnalyzer;
 import com.temportalist.thaumicexpansion.common.tile.TEThaumicAnalyzer;
@@ -25,7 +25,7 @@ public class ProxyClient extends ProxyCommon {
 		TileEntity tile = world.getTileEntity(x, y, z);
 		if (tile != null) {
 			if (ID == 0 && tile instanceof TEThaumicAnalyzer) {
-				return new GuiDecomposer(
+				return new GuiAnalyzer(player,
 						(ContainerThaumicAnalyzer) this
 								.getServerGuiElement(ID, player, world, x, y, z)
 				);

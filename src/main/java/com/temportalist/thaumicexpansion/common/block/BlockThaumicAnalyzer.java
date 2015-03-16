@@ -1,7 +1,7 @@
 package com.temportalist.thaumicexpansion.common.block;
 
-import cofh.api.block.IDismantleable;
 import cofh.lib.util.helpers.AugmentHelper;
+import cofh.thermalexpansion.block.machine.BlockMachine;
 import com.temportalist.thaumicexpansion.common.TEC;
 import com.temportalist.thaumicexpansion.common.item.ItemBlockTA;
 import com.temportalist.thaumicexpansion.common.lib.EnumSideTA;
@@ -9,9 +9,6 @@ import com.temportalist.thaumicexpansion.common.tile.TEThaumicAnalyzer;
 import cpw.mods.fml.common.registry.GameRegistry;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
-import net.minecraft.block.Block;
-import net.minecraft.block.ITileEntityProvider;
-import net.minecraft.block.material.Material;
 import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.EntityLivingBase;
@@ -22,29 +19,27 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.IIcon;
-import net.minecraft.util.MathHelper;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
  * @author TheTemportalist
  */
-public class BlockThaumicAnalyzer extends Block implements ITileEntityProvider, IDismantleable {
+public class BlockThaumicAnalyzer extends BlockMachine {
 
 	private final String modid, name;
 
-	public BlockThaumicAnalyzer(Material mat, String modid, String name) {
-		super(mat);
+	public BlockThaumicAnalyzer(String modid, String name) {
+		super();
 		this.modid = modid;
 		this.name = name;
 		this.setBlockName(name);
 		GameRegistry.registerBlock(this, ItemBlockTA.class, name);
-		GameRegistry.registerTileEntity(TEThaumicAnalyzer.class, TEC.MODID + ":" + "Decomposer");
-		this.isBlockContainer = true;
+		GameRegistry
+				.registerTileEntity(TEThaumicAnalyzer.class, TEC.MODID + ":" + "ThaumicAnalyzer");
 
 	}
 
@@ -129,6 +124,29 @@ public class BlockThaumicAnalyzer extends Block implements ITileEntityProvider, 
 	@Override
 	public void onBlockPlacedBy(
 			World world, int x, int y, int z, EntityLivingBase placer, ItemStack stack) {
+		super.onBlockPlacedBy(world, x, y, z, placer, stack);
+
+		TEThaumicAnalyzer tile = (TEThaumicAnalyzer) world.getTileEntity(x, y, z);
+		tile.updateForTier(this.getTier(stack.getItemDamage()));
+		if (placer instanceof EntityPlayer)
+			tile.setPlacedBy((EntityPlayer) placer);
+
+		ItemStack[] augments = tile.getAugmentSlots();
+		NBTTagList localNBTTagList = stack.getTagCompound().getTagList("Augments", 10);
+		for (int i = 0; i < localNBTTagList.tagCount(); i++) {
+			NBTTagCompound localNBTTagCompound = localNBTTagList.getCompoundTagAt(i);
+			int j = localNBTTagCompound.getInteger("Slot");
+			if ((j >= 0) && (j < augments.length))
+				augments[j] = ItemStack.loadItemStackFromNBT(localNBTTagCompound);
+		}
+		tile.setAugments(augments);
+
+	}
+
+	/*
+	@Override
+	public void onBlockPlacedBy(
+			World world, int x, int y, int z, EntityLivingBase placer, ItemStack stack) {
 		int facing = MathHelper.floor_double((placer.rotationYaw * 4F) / 360F + 0.5D) & 3;
 		int convertedFacing;
 		switch (facing) {
@@ -169,6 +187,7 @@ public class BlockThaumicAnalyzer extends Block implements ITileEntityProvider, 
 		}
 
 	}
+	*/
 
 	@Override
 	protected ItemStack createStackedBlock(int meta) {
@@ -193,6 +212,7 @@ public class BlockThaumicAnalyzer extends Block implements ITileEntityProvider, 
 		}
 	}
 
+	/*
 	@Override
 	public void breakBlock(World world, int x, int y, int z, net.minecraft.block.Block block,
 			int meta) {
@@ -202,18 +222,21 @@ public class BlockThaumicAnalyzer extends Block implements ITileEntityProvider, 
 			tile.dropAllInventory(world, x, y, z);
 		world.removeTileEntity(x, y, z);
 	}
+	*/
 
 	@Override
 	public int damageDropped(int meta) {
 		return meta;
 	}
 
+	/*
 	@Override
 	public boolean onBlockEventReceived(World world, int x, int y, int z, int a, int b) {
 		super.onBlockEventReceived(world, x, y, z, a, b);
 		TileEntity tileentity = world.getTileEntity(x, y, z);
 		return tileentity != null && tileentity.receiveClientEvent(a, b);
 	}
+	*/
 
 	@Override
 	public boolean onBlockActivated(World world, int x, int y, int z, EntityPlayer player, int side,
@@ -237,6 +260,7 @@ public class BlockThaumicAnalyzer extends Block implements ITileEntityProvider, 
 		return false;
 	}
 
+	/*
 	@Override
 	public boolean canDismantle(EntityPlayer player, World world, int x, int y, int z) {
 		return true;
@@ -256,5 +280,6 @@ public class BlockThaumicAnalyzer extends Block implements ITileEntityProvider, 
 		world.setBlockToAir(x, y, z);
 		return drops;
 	}
+	*/
 
 }

@@ -69,4 +69,39 @@ public enum EnumSideTA {
 		return EnumSideTA.values()[i];
 	}
 
+	public static int[][] getSlotGroups() {
+		return new int[][] {
+				new int[] { },
+				new int[] { 0, 1, 2 },
+				new int[] { 0, 1 },
+				new int[] { 2 },
+				new int[] { 2 },
+				new int[] { },
+				new int[] { },
+				new int[] { }
+		};
+	}
+
+	public static boolean[] getInputs() {
+		return new boolean[] {
+				false,
+				true, true,
+				false, false, false, false, false
+		};
+	}
+
+	public static boolean[] getOutputs() {
+		return new boolean[] {
+				false,
+				true, false,
+				true, true, false, false, false
+		};
+	}
+
+	public static byte[] getDefaultSiding() {
+		return new byte[] {
+				0, 0, 0, 0, 0, 0, 0
+		};
+	}
+
 }

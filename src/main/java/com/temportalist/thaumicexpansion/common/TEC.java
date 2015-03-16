@@ -5,6 +5,7 @@ import cofh.lib.util.helpers.AugmentHelper;
 import cofh.thermalexpansion.block.simple.BlockFrame;
 import cofh.thermalexpansion.item.TEItems;
 import cofh.thermalexpansion.util.crafting.RecipeMachineUpgrade;
+import cofh.thermalexpansion.util.crafting.TECraftingHandler;
 import com.temportalist.thaumicexpansion.common.block.BlockThaumicAnalyzer;
 import com.temportalist.thaumicexpansion.common.item.ItemAugment;
 import com.temportalist.thaumicexpansion.common.lib.Pair;
@@ -25,7 +26,6 @@ import cpw.mods.fml.common.registry.GameRegistry;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.block.Block;
-import net.minecraft.block.material.Material;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
@@ -124,11 +124,6 @@ public class TEC {
 
 		this.initConfig(event.getModConfigurationDirectory());
 
-		this.thaumicAnalyzer = new BlockThaumicAnalyzer(
-				Material.rock, TEC.MODID, "thaumicAnalyzer"
-		);
-		this.thaumicAnalyzer.setCreativeTab(CreativeTabs.tabRedstone);
-
 		this.playerTracker = new ItemAugment(TEC.MODID, "playerTracker") {
 			@Override
 			@SideOnly(Side.CLIENT)
@@ -175,6 +170,9 @@ public class TEC {
 
 	@Mod.EventHandler
 	public void postInit(FMLPostInitializationEvent event) {
+
+		this.thaumicAnalyzer = new BlockThaumicAnalyzer(TEC.MODID, "thaumicAnalyzer");
+		this.thaumicAnalyzer.setCreativeTab(CreativeTabs.tabRedstone);
 
 		TEC.aspectTiers.put(Aspect.AIR, 1);
 		TEC.aspectTiers.put(Aspect.EARTH, 1);
@@ -226,6 +224,7 @@ public class TEC {
 					'i', "ingotThaumium", 't', ConfigItems.itemThaumometer,
 					'f', pair.getValue(), 'r', TEItems.powerCoilGold
 			));
+			TECraftingHandler.addSecureRecipe(pair.getKey());
 		}
 
 		@SuppressWarnings("unchecked")

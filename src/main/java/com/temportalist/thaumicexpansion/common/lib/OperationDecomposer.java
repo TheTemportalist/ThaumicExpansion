@@ -29,7 +29,7 @@ public class OperationDecomposer implements IOperation {
 		int energy = 0;
 		int time = 0;
 		for (Aspect aspect : aspects) {
-			// todo wish Azanor had a Aspect.getTier method
+			// todo warning wish Azanor had a Aspect.getTier method
 			int tier = TEC.aspectTiers.containsKey(aspect) ?
 					TEC.aspectTiers.get(aspect) :
 					3;

@@ -1,18 +1,17 @@
 package com.temportalist.thaumicexpansion.client.gui;
 
-import cofh.core.gui.GuiBaseAdv;
-import cofh.core.gui.element.TabAugment;
-import cofh.core.gui.element.TabConfiguration;
-import cofh.core.gui.element.TabRedstone;
 import cofh.core.network.PacketCoFHBase;
 import cofh.core.network.PacketHandler;
 import cofh.core.network.PacketTileInfo;
 import cofh.lib.gui.element.ElementButton;
 import cofh.lib.gui.element.ElementEnergyStored;
+import cofh.lib.gui.element.TabBase;
+import cofh.thermalexpansion.gui.client.GuiAugmentableBase;
 import com.temportalist.thaumicexpansion.common.TEC;
 import com.temportalist.thaumicexpansion.common.inventory.ContainerThaumicAnalyzer;
 import com.temportalist.thaumicexpansion.common.tile.TEThaumicAnalyzer;
 import net.minecraft.client.gui.Gui;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.ResourceLocation;
 import thaumcraft.api.aspects.Aspect;
 import thaumcraft.api.aspects.AspectList;
@@ -23,15 +22,17 @@ import thaumcraft.client.lib.UtilsFX;
  *
  * @author TheTemportalist
  */
-public class GuiDecomposer extends GuiBaseAdv {
+public class GuiAnalyzer extends GuiAugmentableBase {
 
 	private static final ResourceLocation
 			background = new ResourceLocation(TEC.MODID, "textures/gui/thaumicAnalyzer.png"),
 			hexagon = new ResourceLocation(TEC.MODID, "textures/gui/progress.png");
 	private static final int hexagonHeight = TEThaumicAnalyzer.hexagonProgressSteps * 54;
 
-	public GuiDecomposer(ContainerThaumicAnalyzer container) {
-		super(container, GuiDecomposer.background);
+	private TabBase redstoneTab, configTab;
+
+	public GuiAnalyzer(EntityPlayer player, ContainerThaumicAnalyzer container) {
+		super(container, container.tile, player, GuiAnalyzer.background);
 		this.xSize = 184;
 		this.ySize = 176;
 	}
@@ -47,9 +48,11 @@ public class GuiDecomposer extends GuiBaseAdv {
 		this.addElement(new ElementEnergyStored(
 				this, 14, 11, this.container().tile.getEnergyStorage()
 		));
+		/*
 		this.addTab(new TabAugment(this, this.container()));
-		this.addTab(new TabConfiguration(this, this.container().tile));
-		this.addTab(new TabRedstone(this, this.container().tile));
+		this.redstoneTab = this.addTab(new TabRedstone(this, this.container().tile));
+		this.configTab = this.addTab(new TabConfiguration(this, this.container().tile));
+		*/
 
 		int centerX = (this.width / 2);
 		int centerY = (this.height / 2);
@@ -60,12 +63,12 @@ public class GuiDecomposer extends GuiBaseAdv {
 		this.addElement(new ElementButton(this,
 				130, 71, "PreviousColumn",
 				185, 0, 185, 0, 24, 8,
-				GuiDecomposer.background.toString()
+				GuiAnalyzer.background.toString()
 		));
 		this.addElement(new ElementButton(this,
 				154, 71, "NextColumn",
 				209, 0, 209, 0, 24, 8,
-				GuiDecomposer.background.toString()
+				GuiAnalyzer.background.toString()
 		));
 
 	}
@@ -137,10 +140,10 @@ public class GuiDecomposer extends GuiBaseAdv {
 		// 30x11 for hexagon
 		if (this.container().tile.isProcessing()) {
 			int progress = this.container().tile.getProgress();
-			this.bindTexture(GuiDecomposer.hexagon);
+			this.bindTexture(GuiAnalyzer.hexagon);
 			Gui.func_146110_a(
 					centerX - 62, centerY - 77, 0, progress * 54, 64, 54,
-					64, GuiDecomposer.hexagonHeight
+					64, GuiAnalyzer.hexagonHeight
 			);
 		}
 
@@ -160,26 +163,5 @@ public class GuiDecomposer extends GuiBaseAdv {
 		}
 
 	}
-
-	/*
-	@Override
-	protected void func_146977_a(Slot slot) {
-		if (slot.getSlotIndex() == 0 &&
-				slot.inventory == this.container().tile) { // todo instance of special
-			GL11.glPushMatrix();
-			slot.xDisplayPosition -= 16;
-			slot.yDisplayPosition -= 16;
-			GL11.glScalef(2, 2, 2);
-			super.func_146977_a(slot);
-			GL11.glScalef(.5f, .5f, .5f);
-			slot.xDisplayPosition += 16;
-			slot.yDisplayPosition += 16;
-			GL11.glPopMatrix();
-		}
-		else {
-			super.func_146977_a(slot);
-		}
-	}
-	*/
 
 }
