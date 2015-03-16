@@ -63,7 +63,10 @@ import java.util.*;
  * @author TheTemportalist
  */
 @Mod(modid = TEC.MODID, name = "Thaumic Expansion", version = "1.0",
-		dependencies = "required-after:Thaumcraft@[4.2,);required-after:CoFHCore@[1.7.10R3.0.0RC5,);"
+		dependencies = "required-after:Thaumcraft@[4.2,);" +
+				"required-after:CoFHCore@[1.7.10R3.0.0RC7,);" +
+				"required-after:ThermalFoundation@[1.7.10R1.0.0RC7,);" +
+				"required-after:ThermalExpansion@[1.7.10R4.0.0RC7,);"
 )
 public class TEC {
 
