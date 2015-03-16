@@ -33,9 +33,11 @@ import net.minecraft.init.Items;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.crafting.IRecipe;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.MathHelper;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.world.World;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.config.Configuration;
 import net.minecraftforge.common.util.ForgeDirection;
@@ -107,8 +109,9 @@ public class TEC {
 	public static int maxEnergyStorage = 8000;
 	public static boolean consumeItems = true;
 
-	public static final HashMap<UUID, String> idToUsername = new HashMap<UUID, String>();
 	public static final List<UUID> onlinePlayers = new ArrayList<UUID>();
+	// todo: flaw: both of these 2 need to be saved to disk
+	public static final HashMap<UUID, String> idToUsername = new HashMap<UUID, String>();
 	private static final HashMap<UUID, List<Pair<ScanResult, Pair<Double, Double>>>> aspectBuffer =
 			new HashMap<UUID, List<Pair<ScanResult, Pair<Double, Double>>>>();
 
@@ -130,12 +133,26 @@ public class TEC {
 			public void addInformation(ItemStack stack, EntityPlayer player,
 					List list, boolean something) {
 				if (stack.hasTagCompound()) {
-					/*
-					list.add("Player UUID: " + TEC.idToUsername.get(
-							UUID.fromString(stack.getTagCompound().getString("playerUUID"))
+					list.add("Player: " + (
+							stack.getTagCompound().hasKey("playerName") ?
+									stack.getTagCompound().getString("playerName") :
+									TEC.idToUsername.get(
+											UUID.fromString(
+													stack.getTagCompound().getString("playerUUID")
+											)
+									)
 					));
-					*/
 				}
+			}
+
+			@Override
+			public ItemStack onItemRightClick(ItemStack stack, World world, EntityPlayer player) {
+				if (player.isSneaking()) {
+					TEC.setPlayerForTracker(stack, player);
+					// have to do this because mc doesnt check tags
+					player.setCurrentItemOrArmor(0, stack);
+				}
+				return stack;
 			}
 		};
 		this.playerTracker.setCreativeTab(CreativeTabs.tabRedstone);
@@ -390,6 +407,19 @@ public class TEC {
 		}
 	}
 
+	public static boolean hasScannedOffline(UUID playerID, ItemStack stack) {
+		List<Pair<ScanResult, Pair<Double, Double>>> offlineScans = TEC.aspectBuffer.get(playerID);
+		if (offlineScans != null) {
+			for (Pair<ScanResult, Pair<Double, Double>> scanPair : offlineScans) {
+				if (scanPair.getKey().id == Item.getIdFromItem(stack.getItem()) &&
+						scanPair.getKey().meta == stack.getItemDamage()) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
 	public static String getFullName(ItemStack itemStack) {
 		if (itemStack == null)
 			return null;
@@ -429,6 +459,26 @@ public class TEC {
 						&& ItemStack.areItemStackTagsEqual(a, b)
 						&& a.stackSize + b.stackSize <= a.getMaxStackSize()
 		);
+	}
+
+	public static void setPlayerForTracker(ItemStack stack, EntityPlayer player) {
+		NBTTagCompound stackTag = stack.hasTagCompound() ?
+				stack.getTagCompound() :
+				new NBTTagCompound();
+		UUID id = player.getGameProfile().getId();
+		TEC.idToUsername.put(id, player.getCommandSenderName());
+		stackTag.setString("playerUUID", id.toString());
+		stackTag.setString("playerName", player.getCommandSenderName());
+		stack.setTagCompound(stackTag);
+	}
+
+	public static UUID getUUIDForPlayerTracker(ItemStack stack) {
+		try {
+			return UUID.fromString(stack.getTagCompound().getString("playerUUID"));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return null;
 	}
 
 }

@@ -397,19 +397,8 @@ public class TEThaumicAnalyzer extends TileMachineBase implements ISidedInventor
 
 	public UUID getCurrentPlayerUUID() {
 		ItemStack playerTracker = this.getAugment(EnumAugmentTA.PLAYER_TRACKER);
-		//System.out.println("getting player");
 		if (playerTracker != null) {
-			//System.out.println("non null player stack");
-			NBTTagCompound tag = playerTracker.getTagCompound();
-			if (tag != null) {
-				//System.out.println("non null tag");
-				try {
-					//System.out.println("fetching tag");
-					return UUID.fromString(tag.getString("playerUUID"));
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
+			return TEC.getUUIDForPlayerTracker(playerTracker);
 		}
 		return null;
 	}
@@ -445,12 +434,7 @@ public class TEThaumicAnalyzer extends TileMachineBase implements ISidedInventor
 		//System.out.println(this.augmentList.containsKey(EnumAugmentTA.PLAYER_TRACKER));
 		ItemStack playerTracker = this.getAugment(EnumAugmentTA.PLAYER_TRACKER);
 		if (playerTracker != null) {
-			NBTTagCompound stackTag = playerTracker.hasTagCompound() ?
-					playerTracker.getTagCompound() :
-					new NBTTagCompound();
-			stackTag.setString("playerUUID", player.getGameProfile().getId().toString());
-			playerTracker.setTagCompound(stackTag);
-			//System.out.println("Set ID");
+			TEC.setPlayerForTracker(playerTracker, player);
 		}
 	}
 
@@ -467,16 +451,22 @@ public class TEThaumicAnalyzer extends TileMachineBase implements ISidedInventor
 			if (this.augmentList.containsKey(EnumAugmentTA.DECOMPOSER))
 				return true;
 			else {
-				String pName = this.getCurrentPlayerName();
-				if (pName != null) {
-					PlayerKnowledge pk = Thaumcraft.proxy.getPlayerKnowledge();
+				ItemStack playerTracker = this.getAugment(EnumAugmentTA.PLAYER_TRACKER);
+				if (playerTracker != null) {
+					UUID playerID = TEC.getUUIDForPlayerTracker(playerTracker);
+					if (!TEC.hasScannedOffline(playerID, stack)) {
+						String pName = this.getCurrentPlayerName();
+						if (pName != null) {
+							PlayerKnowledge pk = Thaumcraft.proxy.getPlayerKnowledge();
 
-					for (Aspect aspect : list.getAspects()) {
-						if (aspect != null && !aspect.isPrimal()
-								&& !pk.hasDiscoveredParentAspects(pName, aspect))
-							return false;
+							for (Aspect aspect : list.getAspects()) {
+								if (aspect != null && !aspect.isPrimal()
+										&& !pk.hasDiscoveredParentAspects(pName, aspect))
+									return false;
+							}
+							return this.isValidScanTarget(pName, this.getScan(stack), "@");
+						}
 					}
-					return this.isValidScanTarget(pName, this.getScan(stack), "@");
 				}
 			}
 		}
@@ -1054,14 +1044,12 @@ public class TEThaumicAnalyzer extends TileMachineBase implements ISidedInventor
 	@Override
 	public void writeAugmentsToNBT(NBTTagCompound tagCom) {
 		super.writeAugmentsToNBT(tagCom);
-		System.out.println("Writing Size " + this.augments.length);
 		tagCom.setInteger("AugmentsSize", this.augments.length);
 	}
 
 	@Override
 	public void readAugmentsFromNBT(NBTTagCompound tagCom) {
 		if (tagCom.hasKey("AugmentsSize")) {
-			System.out.println("Reading Size " + tagCom.getInteger("AugmentsSize"));
 			this.augments = new ItemStack[tagCom.getInteger("AugmentsSize")];
 			this.augmentStatus = new boolean[this.augments.length];
 		}
