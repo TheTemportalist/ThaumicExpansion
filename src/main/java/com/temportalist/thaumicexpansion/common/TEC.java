@@ -27,6 +27,7 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.block.Block;
 import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.entity.EntityList;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
@@ -34,13 +35,19 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.crafting.IRecipe;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagList;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.MathHelper;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
+import net.minecraft.world.WorldSavedData;
+import net.minecraft.world.WorldServer;
+import net.minecraft.world.storage.MapStorage;
+import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.config.Configuration;
 import net.minecraftforge.common.util.ForgeDirection;
+import net.minecraftforge.event.world.WorldEvent;
 import net.minecraftforge.oredict.ShapedOreRecipe;
 import thaumcraft.api.ThaumcraftApi;
 import thaumcraft.api.aspects.Aspect;
@@ -482,6 +489,127 @@ public class TEC {
 			e.printStackTrace();
 		}
 		return null;
+	}
+
+	@SubscribeEvent
+	public void saveWorld(WorldEvent.Save event) {
+		if (event.world.provider.dimensionId == 0 && event.world instanceof WorldServer) {
+			MapStorage storage = DimensionManager.getWorld(0).mapStorage;
+			if (storage != null) {
+				/*
+				TECData data = (TECData)storage.loadData(TECData.class, "TECData");
+				if (data == null) {
+					data = new TECData();
+					data.markDirty();
+				}
+				*/
+			}
+		}
+	}
+
+	@SubscribeEvent
+	public void loadWorld(WorldEvent.Load event) {
+		if (event.world.provider.dimensionId == 0 && event.world instanceof WorldServer) {
+			MapStorage storage = DimensionManager.getWorld(0).mapStorage;
+			if (storage != null) {
+				TECData data = (TECData) storage.loadData(TECData.class, "TECData");
+				if (data == null) {
+					data = new TECData();
+					data.markDirty();
+				}
+			}
+		}
+	}
+
+	private static class TECData extends WorldSavedData {
+
+		private TECData() {
+			super("TECData");
+		}
+
+		@Override
+		public void writeToNBT(NBTTagCompound tagCom) {
+			NBTTagList idUsernameTag = new NBTTagList();
+			for (Map.Entry<UUID, String> entry : TEC.idToUsername.entrySet()) {
+				NBTTagCompound tag = new NBTTagCompound();
+				tag.setString("playerName", entry.getValue());
+				tag.setString("UUID", entry.getKey().toString());
+				idUsernameTag.appendTag(tag);
+			}
+			tagCom.setTag("idUsernames", idUsernameTag);
+
+			NBTTagList bufferTag = new NBTTagList();
+			for (Map.Entry<UUID, List<Pair<ScanResult, Pair<Double, Double>>>> entry :
+					TEC.aspectBuffer.entrySet()) {
+				NBTTagCompound idedBuffer = new NBTTagCompound();
+				idedBuffer.setString("playerID", entry.getKey().toString());
+				NBTTagList playersBuffer = new NBTTagList();
+				for (Pair<ScanResult, Pair<Double, Double>> pair : entry.getValue()) {
+					NBTTagCompound bufferEntry = new NBTTagCompound();
+
+					NBTTagCompound scan = new NBTTagCompound();
+					scan.setByte("type", pair.getKey().type);
+					scan.setInteger("id", pair.getKey().id);
+					scan.setInteger("meta", pair.getKey().meta);
+					NBTTagCompound entityTag = new NBTTagCompound();
+					pair.getKey().entity.writeToNBTOptional(entityTag);
+					scan.setTag("entityTag", entityTag);
+					scan.setString("phenomena", pair.getKey().phenomena);
+					bufferEntry.setTag("scan", scan);
+
+					bufferEntry.setDouble("chance", pair.getValue().getKey());
+					bufferEntry.setDouble("percent", pair.getValue().getValue());
+
+					playersBuffer.appendTag(bufferEntry);
+				}
+				idedBuffer.setTag("buffer", playersBuffer);
+				bufferTag.appendTag(idedBuffer);
+			}
+			tagCom.setTag("bufferTag", bufferTag);
+
+		}
+
+		@Override
+		public void readFromNBT(NBTTagCompound tagCom) {
+			TEC.idToUsername.clear();
+			NBTTagList idUsernameTag = tagCom.getTagList("idUsernames", 10);
+			for (int i = 0; i < idUsernameTag.tagCount(); i++) {
+				NBTTagCompound tag = idUsernameTag.getCompoundTagAt(i);
+				TEC.idToUsername.put(
+						UUID.fromString(tagCom.getString("UUID")), tagCom.getString("playerName")
+				);
+			}
+
+			TEC.aspectBuffer.clear();
+			NBTTagList bufferTag = tagCom.getTagList("bufferTag", 10);
+			for (int i = 0; i < bufferTag.tagCount(); i++) {
+				NBTTagCompound idedBuffer = bufferTag.getCompoundTagAt(i);
+				UUID playerID = UUID.fromString(idedBuffer.getString("playerID"));
+				NBTTagList playersBuffer = idedBuffer.getTagList("buffer", 10);
+				for (int j = 0; j < playersBuffer.tagCount(); j++) {
+					NBTTagCompound bufferEntry = playersBuffer.getCompoundTagAt(j);
+
+					NBTTagCompound scanTag = bufferEntry.getCompoundTag("scan");
+					ScanResult scan = new ScanResult(
+							scanTag.getByte("type"),
+							scanTag.getInteger("id"),
+							scanTag.getInteger("meta"),
+							EntityList.createEntityFromNBT(
+									scanTag.getCompoundTag("entityTag"),
+									DimensionManager.getWorld(0)
+							),
+							scanTag.getString("phenomena")
+					);
+
+					TEC.addAspect(playerID, scan,
+							bufferEntry.getDouble("chance"), bufferEntry.getDouble("percent"));
+
+				}
+
+			}
+
+		}
+
 	}
 
 }
