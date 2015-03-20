@@ -219,15 +219,6 @@ public class TEC {
 		TEC.aspectTiers.put(Aspect.ENERGY, 2);
 		TEC.aspectTiers.put(Aspect.EXCHANGE, 2);
 
-		ThaumcraftApi.registerObjectTag(new ItemStack(this.thaumicAnalyzer), new int[] {
-						0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16
-				}, new AspectList().
-						add(Aspect.MIND, 4).
-						add(Aspect.METAL, 2).
-						add(Aspect.MECHANISM, 10).
-						add(Aspect.MAGIC, 7)
-		);
-
 		ItemStack[] augments = new ItemStack[] { new ItemStack(this.playerTracker) };
 		for (int tier = 0; tier < TEC.machines.length; tier++) {
 			TEC.machines[tier] = new ItemStack(
@@ -277,9 +268,15 @@ public class TEC {
 
 		this.addResearchAndRecipe(
 				new ResearchItem("THAUMICANALYZER", category,
-						new AspectList(),
-						0, 0, 0, TEC.machines[0]
+						new AspectList(), 0, 0, 0, TEC.machines[0]
 				).setParents("GOGGLES"),
+				new int[] {
+						0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16
+				}, new AspectList().
+						add(Aspect.MIND, 4).
+						add(Aspect.METAL, 2).
+						add(Aspect.MECHANISM, 10).
+						add(Aspect.MAGIC, 7),
 				machineRecipes.toArray(new IRecipe[machineRecipes.size()]), // todo helper method
 				new ResearchPage("tc.research_page.THAUMICANALYZER.1")
 		);
@@ -289,6 +286,11 @@ public class TEC {
 						new AspectList(),
 						-2, 0, 0, new ItemStack(this.playerTracker)
 				).setParents("THAUMICANALYZER"),
+				new int[0],
+				new AspectList().
+						add(Aspect.MAN, 5).
+						add(Aspect.MIND, 2).
+						add(Aspect.SOUL, 1),
 				new IRecipe[] {
 						new ShapedOreRecipe(this.playerTracker,
 								"   ", " h ", "   ", 'h', new ItemStack(Items.skull)
@@ -301,6 +303,11 @@ public class TEC {
 						new AspectList(),
 						-1, -2, 0, new ItemStack(this.decomposerUpgrade)
 				).setParents("THAUMICANALYZER", "DECONSTRUCTOR"),
+				new int[0],
+				new AspectList().
+						add(Aspect.EXCHANGE, 8).
+						add(Aspect.ENERGY, 3).
+						add(Aspect.MECHANISM, 4),
 				new IRecipe[] {
 						new ShapedOreRecipe(this.decomposerUpgrade,
 								"   ", " d ", "   ",
@@ -310,10 +317,15 @@ public class TEC {
 		);
 
 		this.addResearchAndRecipe(
-				new ResearchItem("ITEMKEEPER", category,
-						new AspectList(),
+				new ResearchItem("ITEMKEEPER", category, new AspectList(),
 						1, -2, 0, new ItemStack(this.itemKeeper)
 				).setParents("THAUMICANALYZER"),
+				new int[0],
+				new AspectList().
+						add(Aspect.GREED, 4).
+						add(Aspect.TOOL, 2).
+						add(Aspect.VOID, 5).
+						add(Aspect.CRAFT, 1),
 				new IRecipe[] {
 						new ShapedOreRecipe(this.itemKeeper,
 								"i i", "ici", " i ",
@@ -323,10 +335,14 @@ public class TEC {
 		);
 
 		this.addResearchAndRecipe(
-				new ResearchItem("THAUMICADJUSTER", category,
-						new AspectList(),
+				new ResearchItem("THAUMICADJUSTER", category, new AspectList(),
 						2, 0, 0, new ItemStack(this.thaumicAdjuster)
 				).setParents("THAUMICANALYZER"),
+				new int[0],
+				new AspectList().
+						add(Aspect.TOOL, 7).
+						add(Aspect.ELDRITCH, 3).
+						add(Aspect.MECHANISM, 2),
 				new IRecipe[] {
 						new ShapedOreRecipe(this.thaumicAdjuster,
 								"i i", "eje", " e ",
@@ -338,13 +354,26 @@ public class TEC {
 
 	}
 
-	private void addResearchAndRecipe(ResearchItem research, IRecipe[] recipes,
-			ResearchPage... pages) {
+	private void addResearchAndRecipe(ResearchItem research, int[] meta,
+			AspectList aspects, IRecipe[] recipes, ResearchPage... pages) {
+		ThaumcraftApi.registerObjectTag(research.icon_item, meta, aspects);
+		/*
+		ThaumcraftApi.registerObjectTag(new ItemStack(this.thaumicAnalyzer), new int[] {
+						0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16
+				}, new AspectList().
+						add(Aspect.MIND, 4).
+						add(Aspect.METAL, 2).
+						add(Aspect.MECHANISM, 10).
+						add(Aspect.MAGIC, 7)
+		);
+		*/
+
 		List<ResearchPage> allPages = new ArrayList<ResearchPage>(Arrays.asList(pages));
 		for (IRecipe recipe : recipes) {
 			GameRegistry.addRecipe(recipe);
 			allPages.add(new ResearchPage(recipe));
 		}
+		research.tags.add(aspects);
 		research.setPages(
 				allPages.toArray(new ResearchPage[allPages.size()])
 		).registerResearchItem();
