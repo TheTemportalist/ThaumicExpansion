@@ -1,4 +1,8 @@
 
+tile.thaumicexpansion:thaumicanalyzer.name=Thaumic Analyzer
+item.thaumicexpansion:playerTracker.name=Player Tracker
+item.thaumicexpansion:decomposer.name=Decomposer
+
 tile.thaumicexpansion:thaumicAnalyzer:0=Thaumic Analyzer (Basic)
 tile.thaumicexpansion:thaumicAnalyzer:1=Thaumic Analyzer (Hardened)
 tile.thaumicexpansion:thaumicAnalyzer:2=Thaumic Analyzer (Reinforced)
