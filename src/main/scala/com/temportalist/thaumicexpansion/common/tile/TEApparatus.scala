@@ -11,7 +11,6 @@ import net.minecraft.init.Blocks
 import net.minecraft.nbt.NBTTagCompound
 import net.minecraft.tileentity.TileEntity
 import net.minecraftforge.common.util.ForgeDirection
-import thaumcraft.common.tiles.TileAlchemyFurnace
 
 /**
  *
@@ -49,7 +48,7 @@ class TEApparatus extends TileEntity with TraitEnergyReceiver with IPacketCallba
 			val maxAmountPerTick: Int = 20
 			val amt: Int = Math.min(amountInTicks, maxAmountPerTick)
 			this.connectedCoord.getTile(this.getWorldObj) match {
-				case tile: TileAlchemyFurnace =>
+				//case tile: TileAlchemyFurnace =>
 					/*
 					val canSmelt: Method = classOf[TileAlchemyFurnace].getDeclaredMethod("canSmelt")
 					canSmelt.setAccessible(true)
@@ -134,8 +133,8 @@ class TEApparatus extends TileEntity with TraitEnergyReceiver with IPacketCallba
 object TEApparatus {
 	def isValidConnectorTile(thatTile: TileEntity): Boolean = {
 		thatTile match {
-			case tile: TEAnalyzer => true
-			case tile: TileAlchemyFurnace => true
+			case tile: IEnergable => true
+			//case tile: TileAlchemyFurnace => true
 			case _ => false
 		}
 	}
