@@ -24,8 +24,8 @@ class ProxyClient extends ProxyCommon {
 		MinecraftForgeClient.registerItemRenderer(
 			Item.getItemFromBlock(TECBlocks.analyzer), ran)
 		ClientRegistry.bindTileEntitySpecialRenderer(classOf[TEApparatus], RenderApparatus)
-		//MinecraftForgeClient.registerItemRenderer(
-		//	Item.getItemFromBlock(TECBlocks.analyzer), RenderApparatus)
+		MinecraftForgeClient.registerItemRenderer(
+			Item.getItemFromBlock(TECBlocks.apparatus), RenderApparatus)
 	}
 
 	override def getClientElement(ID: Int, player: EntityPlayer, world: World, x: Int, y: Int,

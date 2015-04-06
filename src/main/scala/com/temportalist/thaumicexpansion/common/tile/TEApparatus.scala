@@ -25,6 +25,12 @@ class TEApparatus extends TileEntity with TraitEnergyReceiver with IPacketCallba
 
 	override def getMaxEnergy(): Int = 16000 // 1 coal
 
+	def getFacing(): Int = {
+		// world can be null if tile is the dummy inside of an item render
+		if (this.worldObj == null) 0
+		else this.getBlockMetadata
+	}
+
 	override def updateEntity(): Unit = {
 		super.updateEntity()
 

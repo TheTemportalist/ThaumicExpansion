@@ -8,17 +8,15 @@ import cpw.mods.fml.relauncher.{Side, SideOnly}
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.Tessellator
 import net.minecraft.client.renderer.entity.{RenderItem, RenderManager}
+import net.minecraft.entity.Entity
 import net.minecraft.entity.item.EntityItem
 import net.minecraft.item.ItemStack
 import net.minecraft.tileentity.TileEntity
 import net.minecraft.util.{MathHelper, ResourceLocation}
 import net.minecraft.world.World
-import net.minecraftforge.client.IItemRenderer
-import net.minecraftforge.client.IItemRenderer.{ItemRenderType, ItemRendererHelper}
 import net.minecraftforge.common.util.ForgeDirection
 import org.lwjgl.opengl.GL11
 import thaumcraft.common.config.ConfigItems
-import net.minecraft.entity.Entity
 
 /**
  *
@@ -28,7 +26,7 @@ import net.minecraft.entity.Entity
 @SideOnly(Side.CLIENT)
 class RenderAnalyzer extends TERenderer(new ResourceLocation(TEC.MODID,
 	"textures/models/analyzer.png"
-)) with IItemRenderer {
+)) with TERendererItem {
 
 	val model: ModelAnalyzer = new ModelAnalyzer()
 	val renderItem: RenderItem = new RenderItem() {
@@ -40,23 +38,7 @@ class RenderAnalyzer extends TERenderer(new ResourceLocation(TEC.MODID,
 
 	val dummy: TEAnalyzer = new TEAnalyzer
 
-	override def handleRenderType(item: ItemStack, `type`: ItemRenderType): Boolean = true
-
-	override def shouldUseRenderHelper(`type`: ItemRenderType, item: ItemStack,
-			helper: ItemRendererHelper): Boolean = true
-
-	override def renderItem(iType: ItemRenderType, item: ItemStack, data: AnyRef*): Unit = {
-		GL11.glPushMatrix()
-		//if (iType == ItemRenderType.ENTITY) GL11.glTranslated(-0.5, -0.5, -0.5)
-		//else
-		if (iType == ItemRenderType.INVENTORY) GL11.glTranslated(0, -0.1, 0)
-		else if (iType == ItemRenderType.EQUIPPED_FIRST_PERSON) GL11.glTranslated(0.5, 0.5, 0.5)
-		else if (iType == ItemRenderType.EQUIPPED) GL11.glTranslated(0.5, 0.5, 0.5)
-
-		this.renderTileEntityAt(this.dummy, -0.5, -0.5, -0.5, 0)
-
-		GL11.glPopMatrix()
-	}
+	override def getRenderingTileItem(): TileEntity = this.dummy
 
 	override protected def render(tileEntity: TileEntity, renderPartialTicks: Float,
 			f5: Float): Unit = {

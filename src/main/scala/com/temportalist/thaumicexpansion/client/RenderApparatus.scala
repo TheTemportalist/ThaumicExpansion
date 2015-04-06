@@ -16,15 +16,19 @@ import org.lwjgl.opengl.GL11
  */
 object RenderApparatus extends TERenderer(new ResourceLocation(TEC.MODID,
 	"textures/models/apparatus.png"
-)) {
+)) with TERendererItem {
 
 	val model: ModelApparatus = new ModelApparatus
+
+	val dummy: TEApparatus = new TEApparatus
+
+	override def getRenderingTileItem(): TileEntity = this.dummy
 
 	override protected def render(tileEntity: TileEntity, renderPartialTicks: Float,
 			f5: Float): Unit = {
 		tileEntity match {
 			case tile: TEApparatus =>
-				val facingSide: Int = tile.getBlockMetadata
+				val facingSide: Int = tile.getFacing()
 
 				val switchedSideArray: Array[Int] = this.getSwitchedSidesForFacing(facingSide)
 				Scala.foreach(tile.getActiveSides(), (index: Int, isActive: Boolean) => {
