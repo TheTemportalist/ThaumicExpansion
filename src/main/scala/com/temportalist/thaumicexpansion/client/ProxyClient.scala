@@ -3,7 +3,7 @@ package com.temportalist.thaumicexpansion.client
 import com.temportalist.thaumicexpansion.common.ProxyCommon
 import com.temportalist.thaumicexpansion.common.container.ContainerAnalyzer
 import com.temportalist.thaumicexpansion.common.init.TECBlocks
-import com.temportalist.thaumicexpansion.common.tile.TEAnalyzer
+import com.temportalist.thaumicexpansion.common.tile.{TEApparatus, TEAnalyzer}
 import cpw.mods.fml.client.registry.ClientRegistry
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.item.Item
@@ -23,6 +23,9 @@ class ProxyClient extends ProxyCommon {
 		ClientRegistry.bindTileEntitySpecialRenderer(classOf[TEAnalyzer], ran)
 		MinecraftForgeClient.registerItemRenderer(
 			Item.getItemFromBlock(TECBlocks.analyzer), ran)
+		ClientRegistry.bindTileEntitySpecialRenderer(classOf[TEApparatus], RenderApparatus)
+		//MinecraftForgeClient.registerItemRenderer(
+		//	Item.getItemFromBlock(TECBlocks.analyzer), RenderApparatus)
 	}
 
 	override def getClientElement(ID: Int, player: EntityPlayer, world: World, x: Int, y: Int,

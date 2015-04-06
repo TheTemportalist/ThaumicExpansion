@@ -1,78 +1,136 @@
 package com.temportalist.thaumicexpansion.common.tile
 
+import cofh.api.energy.IEnergyProvider
+import com.temportalist.origin.api.tile.IPacketCallback
+import com.temportalist.origin.library.common.lib.BlockState
+import com.temportalist.origin.library.common.lib.vec.V3O
+import com.temportalist.origin.library.common.network.PacketTileCallback
+import com.temportalist.origin.library.common.utility.Stacks
 import com.temportalist.thaumicexpansion.common.cofh.TraitEnergyReceiver
-import cpw.mods.fml.common.Optional
-import cpw.mods.fml.relauncher.{Side, SideOnly}
+import net.minecraft.init.Blocks
+import net.minecraft.nbt.NBTTagCompound
 import net.minecraft.tileentity.TileEntity
 import net.minecraftforge.common.util.ForgeDirection
+import thaumcraft.common.tiles.TileAlchemyFurnace
 
 /**
  *
  *
  * @author TheTemportalist
  */
-@Optional.Interface(modid = "CoFHLib", iface = "TraitEnergyReceiver", striprefs = false)
-class TEApparatus extends TileEntity with TraitEnergyReceiver {
+class TEApparatus extends TileEntity with TraitEnergyReceiver with IPacketCallback {
 
-	private var facingHorizontal: ForgeDirection = ForgeDirection.UNKNOWN
-	private var facingVertical: ForgeDirection = ForgeDirection.UNKNOWN
+	var activeSides: Array[Boolean] = Array[Boolean](false, false, false, false, false, false)
+	var connectedCoord: V3O = null
 
 	override def getMaxEnergy(): Int = 16000 // 1 coal
-
-	def setFacing(h: ForgeDirection, v: ForgeDirection): Unit = {
-		if (h != null) this.facingHorizontal = h
-		if (v != null) this.facingVertical = v
-		this.markDirty()
-	}
-
-	def getFacingH(): ForgeDirection = this.facingHorizontal
-
-	/**
-	 * Rotates the render based on current facing. Assumes that render's front is ForgeDirection.NORTH
-	 */
-	@SideOnly(Side.CLIENT)
-	def rotateViaFacing(): Unit = {
-		// todo to V3O
-		// Axis:
-		//  Lateral axis (NS = Z Axis)
-		//  Normal axis (NS = Y OR X)
-		// N -> 0° Y axis
-		// S -> 180° Y Axis
-		// W -> 270° Y Axis
-		// E -> 90° Y Axis
-		// D -> -90° X Axis
-		// U -> 90° X Axis
-
-		/**
-				-Z
-		    -X      +X
-		        +Z
-
-		        N
-		    W       E
-		        S
-
-			D, U, N, S, W, E
-			Angle = {
-		        NORTH(2): ?, ?, 000, 180, 270, 090
-		        SOUTH(3): ?, ?, 180, 000, 090, 270
-		        WEST(4):  ?, ?, 090, 270, 000, 180
-		        EAST(5):  ?, ?, 270, 090, 180, 000
-		    }
-		    AxisOfAngle = {
-		        NORTH(2): ?, ?, Y, Y, Y, Y
-		    }
-
-			Axis.rotate(this.facing, ForgeDirection.NORTH) {
-
-		    }
-		  */
-
-	}
 
 	override def updateEntity(): Unit = {
 		super.updateEntity()
 
+		if (this.connectedCoord == null) this.refreshConnected()
+
+		if (this.connectedCoord.getBlock(this.getWorldObj) == Blocks.air) {
+			val thisVec: V3O = new V3O(this)
+			Stacks.spawnItemStack(this.getWorldObj, thisVec, new BlockState(this),
+				this.getWorldObj.rand, 10)
+			thisVec.setBlockToAir(this.getWorldObj)
+			return
+		}
+
+		val amountInTicks: Int = this.getEnergy() / 10
+		if (amountInTicks > 0) {
+			val maxAmountPerTick: Int = 20
+			val amt: Int = Math.min(amountInTicks, maxAmountPerTick)
+			this.connectedCoord.getTile(this.getWorldObj) match {
+				case tile: TileAlchemyFurnace =>
+					/*
+					val canSmelt: Method = classOf[TileAlchemyFurnace].getDeclaredMethod("canSmelt")
+					canSmelt.setAccessible(true)
+					if (tile.furnaceCookTime > 0 || canSmelt.invoke(tile).asInstanceOf[Boolean]) {
+						//println("invoking")
+						tile.furnaceBurnTime += amt
+						//tile.currentItemBurnTime += 1
+						this.storage.extractEnergy(amt, true)
+					}
+					*/
+				case energable: IEnergable =>
+					if (energable.getEnergy() + amt <= energable.getMaxEnergy()) {
+						if (energable.addEnergy(amt, doOp = false) > 0) {
+							energable.addEnergy(amt, doOp = true)
+							this.storage.setEnergyStored((this.getEnergy() / 10 - amt) * 10)
+							new PacketTileCallback(this).add("EnergyAndThat").add(this.getEnergy()).
+									add(new V3O(energable)).add(energable.getEnergy())
+									.sendToClients()
+						}
+					}
+				case _ => println("no te")
+			}
+		}
+
 	}
 
+	def isValidConnectorTile(thatTile: TileEntity): Boolean =
+		TEApparatus.isValidConnectorTile(thatTile)
+
+	def getActiveSides(): Array[Boolean] = this.activeSides
+
+	def checkAllSides(): Unit = {
+		val thisVec: V3O = new V3O(this)
+		for (dir: ForgeDirection <- ForgeDirection.VALID_DIRECTIONS) this.checkSide(thisVec, dir)
+	}
+
+	def checkSide(vec: V3O, coord: V3O): Unit = this.checkSide(vec, (vec - coord).getDir())
+
+	def checkSide(vec: V3O, dir: ForgeDirection): Unit = {
+		val preCheck: Boolean = this.activeSides(dir.ordinal())
+		this.activeSides(dir.ordinal()) =
+				(vec + dir).getTile(this.getWorldObj) match {
+					case provider: IEnergyProvider => true
+					case _ => false
+				}
+		if (this.activeSides(dir.ordinal()) != preCheck) {
+			new PacketTileCallback(this).add("SideChange").add(dir.ordinal()).
+					add(this.activeSides(dir.ordinal())).sendToClients()
+		}
+	}
+
+	def refreshConnected(): Unit =
+		this.connectedCoord = new V3O(this) + ForgeDirection.getOrientation(this.getBlockMetadata)
+
+	override def packetCallback(packet: PacketTileCallback, isServer: Boolean): Unit = {
+		packet.get[String] match {
+			case "SideChange" =>
+				this.activeSides(packet.get[Int]) = packet.get[Boolean]
+			case "EnergyAndThat" =>
+				this.storage.setEnergyStored(packet.get[Int])
+				packet.get[V3O].getTile(this.getWorldObj) match {
+					case energable: IEnergable =>
+						energable.setEnergy(packet.get[Int])
+					case _ =>
+				}
+			case _ =>
+		}
+	}
+
+	override def writeToNBT(tagCom: NBTTagCompound): Unit = {
+		super.writeToNBT(tagCom)
+		this.storage.writeToNBT(tagCom)
+	}
+
+	override def readFromNBT(tagCom: NBTTagCompound): Unit = {
+		super.readFromNBT(tagCom)
+		this.storage.readFromNBT(tagCom)
+	}
+
+}
+
+object TEApparatus {
+	def isValidConnectorTile(thatTile: TileEntity): Boolean = {
+		thatTile match {
+			case tile: TEAnalyzer => true
+			case tile: TileAlchemyFurnace => true
+			case _ => false
+		}
+	}
 }

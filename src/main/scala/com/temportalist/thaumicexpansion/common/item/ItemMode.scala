@@ -24,7 +24,7 @@ class ItemMode(name: String, private var names: Array[String]) extends ItemWrapp
 	this.setHasSubtypes(true)
 
 	@SideOnly(Side.CLIENT)
-	private var icons: Array[IIcon] = null
+	private var icons: Array[IIcon] = _
 
 	override def getUnlocalizedName(stack: ItemStack): String = {
 		"item." + TEC.MODID + ":" + this.names(stack.getItemDamage)

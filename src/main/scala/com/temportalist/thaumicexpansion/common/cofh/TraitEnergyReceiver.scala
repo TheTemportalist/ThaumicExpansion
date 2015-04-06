@@ -12,9 +12,11 @@ import net.minecraftforge.common.util.ForgeDirection
 //@Optional.Interface(modid = "CoFHLib", iface = "TraitEnergyReceiver", striprefs = false)
 trait TraitEnergyReceiver extends TileEntity with IEnergyReceiver {
 	
-	def storage: EnergyStorage = new EnergyStorage(this.getMaxEnergy())
+	val storage: EnergyStorage = new EnergyStorage(this.getMaxEnergy())
 
 	def getMaxEnergy(): Int
+
+	def getEnergy(): Int = this.getEnergyStored(ForgeDirection.UNKNOWN)
 	
 	override def receiveEnergy(direction: ForgeDirection, amount: Int, doOp: Boolean): Int = {
 		val amt: Int = this.storage.receiveEnergy(amount, doOp)

@@ -15,7 +15,7 @@ import net.minecraft.tileentity.TileEntity
 trait IEnergable extends TileEntity with IInv {
 
 	private var currentEnergy: Int = 0
-	 var loadingEnergy: Int = 0
+	var loadingEnergy: Int = 0
 
 	def slotFuel(): Int
 
@@ -24,6 +24,8 @@ trait IEnergable extends TileEntity with IInv {
 	def getFuel(): ItemStack = this.getStackInSlot(this.slotFuel())
 
 	def getEnergy(): Int = this.currentEnergy
+
+	def setEnergy(e: Int): Unit = this.currentEnergy = e
 
 	def scaleEnergy(max: Double): Int = {
 		((this.currentEnergy.toDouble / this.getMaxEnergy().toDouble) * max).toInt
