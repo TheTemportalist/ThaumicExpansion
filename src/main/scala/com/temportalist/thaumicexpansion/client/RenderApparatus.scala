@@ -1,7 +1,7 @@
 package com.temportalist.thaumicexpansion.client
 
 import com.temportalist.origin.library.common.utility.Scala
-import com.temportalist.origin.wrapper.client.render.TERenderer
+import com.temportalist.origin.wrapper.client.render.TERenderItem
 import com.temportalist.thaumicexpansion.client.model.ModelApparatus
 import com.temportalist.thaumicexpansion.common.TEC
 import com.temportalist.thaumicexpansion.common.tile.TEApparatus
@@ -14,9 +14,9 @@ import org.lwjgl.opengl.GL11
  *
  * @author TheTemportalist 4/5/15
  */
-object RenderApparatus extends TERenderer(new ResourceLocation(TEC.MODID,
+object RenderApparatus extends TERenderItem(new ResourceLocation(TEC.MODID,
 	"textures/models/apparatus.png"
-)) with TERendererItem {
+)) {
 
 	val model: ModelApparatus = new ModelApparatus
 
