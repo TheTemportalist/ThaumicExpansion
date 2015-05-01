@@ -1,6 +1,6 @@
 package com.temportalist.thaumicexpansion.client
 
-import com.temportalist.origin.wrapper.client.render.TERenderer
+import com.temportalist.origin.wrapper.client.render.TERenderItem
 import com.temportalist.thaumicexpansion.client.model.ModelAnalyzer
 import com.temportalist.thaumicexpansion.common.TEC
 import com.temportalist.thaumicexpansion.common.tile.TEAnalyzer
@@ -24,9 +24,9 @@ import thaumcraft.common.config.ConfigItems
  * @author TheTemportalist
  */
 @SideOnly(Side.CLIENT)
-class RenderAnalyzer extends TERenderer(new ResourceLocation(TEC.MODID,
+class RenderAnalyzer extends TERenderItem(new ResourceLocation(TEC.MODID,
 	"textures/models/analyzer.png"
-)) with TERendererItem {
+)) {
 
 	val model: ModelAnalyzer = new ModelAnalyzer()
 	val renderItem: RenderItem = new RenderItem() {
