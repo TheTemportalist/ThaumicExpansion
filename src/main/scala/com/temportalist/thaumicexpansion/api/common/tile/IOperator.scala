@@ -1,4 +1,4 @@
-package com.temportalist.thaumicexpansion.common.tile
+package com.temportalist.thaumicexpansion.api.common.tile
 
 import net.minecraft.item.ItemStack
 
@@ -9,9 +9,9 @@ import net.minecraft.item.ItemStack
  */
 trait IOperator {
 
-	def getInput(): ItemStack
+	def getInput: ItemStack
 
-	def getOutput(): ItemStack
+	def getOutput: ItemStack
 
 	def finishedOperation(setInput: ItemStack, toOutput: ItemStack, data: Array[Any]): Unit
 

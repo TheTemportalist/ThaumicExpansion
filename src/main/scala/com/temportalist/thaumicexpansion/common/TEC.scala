@@ -3,11 +3,11 @@ package com.temportalist.thaumicexpansion.common
 import java.util
 import java.util.UUID
 
-import com.temportalist.origin.library.common.handlers.RegisterHelper
-import com.temportalist.origin.library.common.lib
-import com.temportalist.origin.library.common.lib.Pair
-import com.temportalist.origin.library.common.utility.Players
-import com.temportalist.origin.wrapper.common.ModWrapper
+import com.temportalist.origin.api.common.IModDetails
+import com.temportalist.origin.api.common.lib.Pair
+import com.temportalist.origin.foundation.common.IMod
+import com.temportalist.origin.foundation.common.utility.Players
+import com.temportalist.origin.internal.common.handlers.RegisterHelper
 import com.temportalist.thaumicexpansion.common.init.{TECBlocks, TECItems}
 import com.temportalist.thaumicexpansion.common.network.PacketGiveAspect
 import com.temportalist.thaumicexpansion.server.CommandTEC
@@ -30,11 +30,12 @@ import thaumcraft.common.lib.research.{PlayerKnowledge, ScanManager}
  */
 @Mod(modid = TEC.MODID, name = TEC.MODNAME, version = TEC.VERSION, modLanguage = "scala",
 	dependencies = "required-after:Thaumcraft@[4.2,);" +
+			"required-after:origin@[5,);" +
 			"after:CoFHCore@[1.7.10R3.0.0RC7,);" +
 			"after:ThermalFoundation@[1.7.10R1.0.0RC7,);" +
 			"after:ThermalExpansion@[1.7.10R4.0.0RC7,);"
 )
-object TEC extends ModWrapper {
+object TEC extends IMod with IModDetails {
 
 	final val MODID = "thaumicexpansion"
 	final val MODNAME = "Thaumic Expansion"
@@ -42,13 +43,21 @@ object TEC extends ModWrapper {
 	final val PROXY_CLIENT = "com.temportalist.thaumicexpansion.client.ProxyClient"
 	final val PROXY_SERVER = "com.temportalist.thaumicexpansion.common.ProxyCommon"
 
+	override def getModid: String = this.MODID
+
+	override def getModName: String = this.MODNAME
+
+	override def getModVersion: String = this.VERSION
+
+	override def getDetails: IModDetails = this
+
 	@SidedProxy(clientSide = this.PROXY_CLIENT, serverSide = this.PROXY_SERVER)
 	var proxy: ProxyCommon = null
 
 	/**
 	 * Maps the complexity of the aspect to the time and energy per aspect
 	 */
-	final val timeEnergyPerStats: List[lib.Pair[Int, Int]] = List[lib.Pair[Int, Int]] (
+	final val timeEnergyPerStats: List[Pair[Int, Int]] = List[Pair[Int, Int]] (
 		new Pair[Int, Int](20, 50),
 		new Pair[Int, Int](60, 50),
 		new Pair[Int, Int](100, 50)
@@ -69,11 +78,9 @@ object TEC extends ModWrapper {
 
 	@Mod.EventHandler
 	def preInit(event: FMLPreInitializationEvent): Unit = {
-		super.preInitialize(this.MODID, this.MODNAME, event, this.proxy, TECBlocks, TECItems)
+		super.preInitialize(this.MODID, this.MODNAME, event, this.proxy, null, TECBlocks, TECItems)
 
-		RegisterHelper.registerPacketHandler(TEC.MODID,
-		classOf[PacketGiveAspect]
-		)
+		this.registerPackets(classOf[PacketGiveAspect])
 
 		RegisterHelper.registerCommand(new CommandTEC)
 

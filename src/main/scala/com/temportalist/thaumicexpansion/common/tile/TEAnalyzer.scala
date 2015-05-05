@@ -3,10 +3,12 @@ package com.temportalist.thaumicexpansion.common.tile
 import java.util
 import java.util.{Arrays, List, UUID}
 
-import com.temportalist.origin.api.inventory.IInv
-import com.temportalist.origin.api.tile.{IPacketCallback, ITileSaver}
-import com.temportalist.origin.library.common.network.PacketTileCallback
-import com.temportalist.origin.library.common.utility.Players
+import com.temportalist.origin.api.common.inventory.IInv
+import com.temportalist.origin.api.common.tile.ITileSaver
+import com.temportalist.origin.foundation.common.network.PacketTileCallback
+import com.temportalist.origin.foundation.common.tile.IPacketCallback
+import com.temportalist.origin.foundation.common.utility.Players
+import com.temportalist.thaumicexpansion.api.common.tile.{IOperator, IOperation, IEnergable}
 import com.temportalist.thaumicexpansion.common._
 import com.temportalist.thaumicexpansion.common.init.TECItems
 import cpw.mods.fml.common.FMLLog
@@ -25,6 +27,7 @@ import thaumcraft.common.Thaumcraft
 import thaumcraft.common.lib.research.{PlayerKnowledge, ScanManager}
 
 import scala.util.control.Breaks.{break, breakable}
+import cpw.mods.fml.relauncher.Side
 
 /**
  *
@@ -62,7 +65,7 @@ class TEAnalyzer()
 	override def updateEntity(): Unit = {
 		this.checkEnergy()
 
-		val modeStack: ItemStack = this.getModeStack()
+		val modeStack: ItemStack = this.getModeStack
 		if (modeStack != null) {
 			modeStack.getItemDamage match {
 				case 0 =>
@@ -75,8 +78,8 @@ class TEAnalyzer()
 						this.currentOP = new OperationDecomposer(this)
 			}
 			if (this.currentOP != null) {
-				if (this.getInput() != null) this.currentOP.onUpdate(this, this)
-				else this.currentOP.reset
+				if (this.getInput != null) this.currentOP.onUpdate(this, this)
+				else this.currentOP.reset()
 			}
 		}
 		else this.currentMode = ""
@@ -122,11 +125,11 @@ class TEAnalyzer()
 		this.setInventorySlotContents(this.MODE, stack)
 	}
 
-	def getInput(): ItemStack = this.getStackInSlot(this.INPUT)
+	def getInput: ItemStack = this.getStackInSlot(this.INPUT)
 
-	def getOutput(): ItemStack = this.getStackInSlot(this.OUTPUT)
+	def getOutput: ItemStack = this.getStackInSlot(this.OUTPUT)
 
-	def getModeStack(): ItemStack = this.getStackInSlot(this.MODE)
+	def getModeStack: ItemStack = this.getStackInSlot(this.MODE)
 
 	def isProcessing: Boolean = this.currentOP != null && this.currentOP.isRunning
 
@@ -147,12 +150,12 @@ class TEAnalyzer()
 		val list: AspectList = ThaumcraftApiHelper.getObjectAspects(stack)
 		if (list != null && list.size > 0) {
 			val stackMeta: Int =
-				if (this.getModeStack() != null)
-					this.getModeStack().getItemDamage
+				if (this.getModeStack != null)
+					this.getModeStack.getItemDamage
 				else -1
 			if (stackMeta == 1) return true
 			else {
-				val playerID: UUID = TECItems.modeItem.getUUID(this.getModeStack())
+				val playerID: UUID = TECItems.modeItem.getUUID(this.getModeStack)
 				if (playerID != null && !TEC.hasScannedOffline(playerID, stack)) {
 					val pName: String = Players.getUserName(playerID)
 					if (pName != null) {
@@ -356,7 +359,7 @@ class TEAnalyzer()
 		}
 	}
 
-	override def packetCallback(packet: PacketTileCallback, isServer: Boolean): Unit = {
+	override def packetCallback(packet: PacketTileCallback, side: Side): Unit = {
 		packet.get[String] match {
 			case "EnergyAspects" =>
 				val nbt: NBTTagCompound = packet.get[NBTTagCompound]

@@ -1,4 +1,4 @@
-package com.temportalist.thaumicexpansion.common.tile
+package com.temportalist.thaumicexpansion.api.common.tile
 
 import net.minecraft.nbt.NBTTagCompound
 import net.minecraft.tileentity.TileEntity
@@ -17,9 +17,9 @@ trait IOperation {
 
 	def isRunning: Boolean = this.currentTicks >= 0
 
-	def start: Unit = this.currentTicks = 0
+	def start(): Unit = this.currentTicks = 0
 
-	def tick: Unit = this.currentTicks += 1
+	def tick(): Unit = this.currentTicks += 1
 
 	def getTicks: Int = this.currentTicks
 
@@ -31,7 +31,7 @@ trait IOperation {
 
 	def areTicksReady: Boolean = this.currentTicks >= this.maxTicks
 
-	def reset: Unit = this.currentTicks = -1
+	def reset(): Unit = this.currentTicks = -1
 
 	def run(tileEntity: TileEntity, operator: IOperator)
 

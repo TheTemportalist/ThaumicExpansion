@@ -1,8 +1,8 @@
 package com.temportalist.thaumicexpansion.common.network
 
-import com.temportalist.origin.library.common.network.PacketTile
-import com.temportalist.thaumicexpansion.common.TEC
+import com.temportalist.origin.foundation.common.network.PacketTile
 import com.temportalist.thaumicexpansion.common.tile.TEAnalyzer
+import cpw.mods.fml.relauncher.Side
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.tileentity.TileEntity
 
@@ -20,9 +20,7 @@ class PacketGiveAspect(tile: TEAnalyzer, index: Int, takeOne: Boolean) extends P
 		this(null, 0, false)
 	}
 
-	override def getChannel(): String = TEC.MODID
-
-	override def handle(player: EntityPlayer, tileEntity: TileEntity, isServer: Boolean): Unit = {
+	override def handle(player: EntityPlayer, tileEntity: TileEntity, side: Side): Unit = {
 		tileEntity match {
 			case tile: TEAnalyzer =>
 				tile.giveAspect(player, this.get[Int], this.get[Boolean])

@@ -18,7 +18,7 @@ import net.minecraftforge.client.MinecraftForgeClient
  */
 class ProxyClient extends ProxyCommon {
 
-	override def registerRender(): Unit = {
+	override def register(): Unit = {
 		val ran: RenderAnalyzer = new RenderAnalyzer()
 		ClientRegistry.bindTileEntitySpecialRenderer(classOf[TEAnalyzer], ran)
 		MinecraftForgeClient.registerItemRenderer(

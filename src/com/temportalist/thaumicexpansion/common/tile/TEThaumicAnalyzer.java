@@ -15,6 +15,8 @@ import cofh.lib.util.position.IRotateableTile;
 import cofh.thermalexpansion.block.machine.BlockMachine;
 import cofh.thermalexpansion.block.machine.TileMachineBase;
 import cofh.thermalexpansion.util.Utils;
+import com.temportalist.thaumicexpansion.api.common.tile.IOperation;
+import com.temportalist.thaumicexpansion.api.common.tile.IOperator;
 import com.temportalist.thaumicexpansion.common.TEC;
 import com.temportalist.thaumicexpansion.common.block.BlockThaumicAnalyzer;
 import com.temportalist.thaumicexpansion.common.lib.*;

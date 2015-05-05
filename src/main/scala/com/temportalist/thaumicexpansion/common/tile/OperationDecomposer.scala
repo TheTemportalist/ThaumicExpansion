@@ -2,7 +2,8 @@ package com.temportalist.thaumicexpansion.common.tile
 
 import java.util.UUID
 
-import com.temportalist.origin.library.common.utility.Stacks
+import com.temportalist.origin.api.common.utility.Stacks
+import com.temportalist.thaumicexpansion.api.common.tile.{IOperator, IOperation, IEnergable}
 import com.temportalist.thaumicexpansion.common.TEC
 import com.temportalist.thaumicexpansion.common.init.TECItems
 import net.minecraft.item.ItemStack
@@ -22,10 +23,10 @@ class OperationDecomposer(tile: TEAnalyzer)
 	var secondaryOutput: Boolean = tile.getWorldObj.rand.nextDouble() < 0.1D
 	var aspects: AspectList = new AspectList()
 
-	override def start: Unit = {
-		super.start
-		if (tile.getInput() != null) {
-			val localInput: ItemStack = tile.getInput().copy()
+	override def start(): Unit = {
+		super.start()
+		if (tile.getInput != null) {
+			val localInput: ItemStack = tile.getInput.copy()
 			localInput.stackSize = 1
 			val localList: AspectList = TEC.getAspects(tile.getScan(localInput))
 			val chances: Array[Double] = TEC.complexityTierChance(tile.getTier())
@@ -43,16 +44,16 @@ class OperationDecomposer(tile: TEAnalyzer)
 	}
 
 	override def canRun(tileEntity: TileEntity, operator: IOperator): Boolean = {
-		Stacks.canFit(operator.getInput(), operator.getOutput()) &&
+		Stacks.canFit(operator.getInput, operator.getOutput) &&
 				tileEntity.isInstanceOf[IEnergable] &&
-				tileEntity.asInstanceOf[IEnergable].getEnergy() >= this.energyCost
+				tileEntity.asInstanceOf[IEnergable].getEnergy >= this.energyCost
 	}
 
 	override def run(tileEntity: TileEntity, operator: IOperator): Unit = {
 		if (!this.canRun(tileEntity, operator)) return
 		tileEntity match {
 			case te: TEAnalyzer =>
-				val pUUID: UUID = TECItems.modeItem.getUUID(te.getModeStack())
+				val pUUID: UUID = TECItems.modeItem.getUUID(te.getModeStack)
 
 				// todo hide aspects in gui as ?s if player doesnt know them
 

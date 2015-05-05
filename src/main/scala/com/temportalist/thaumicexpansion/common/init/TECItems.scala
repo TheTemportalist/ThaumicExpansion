@@ -1,6 +1,6 @@
 package com.temportalist.thaumicexpansion.common.init
 
-import com.temportalist.origin.library.common.register.ItemRegister
+import com.temportalist.origin.foundation.common.register.ItemRegister
 import com.temportalist.thaumicexpansion.common.item.ItemMode
 import net.minecraft.creativetab.CreativeTabs
 import net.minecraft.item.ItemStack

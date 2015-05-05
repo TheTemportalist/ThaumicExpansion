@@ -2,7 +2,7 @@ package com.temportalist.thaumicexpansion.common.block
 
 import java.util
 
-import com.temportalist.origin.wrapper.common.block.BlockWrapperTE
+import com.temportalist.origin.foundation.common.block.BlockTile
 import com.temportalist.thaumicexpansion.common.TEC
 import com.temportalist.thaumicexpansion.common.init.TECBlocks
 import com.temportalist.thaumicexpansion.common.tile.TEAnalyzer
@@ -19,7 +19,7 @@ import net.minecraft.world.World
  *
  * @author TheTemportalist
  */
-class BlockAnalyzer(name: String) extends BlockWrapperTE(
+class BlockAnalyzer(name: String) extends BlockTile(
 	Material.rock, TEC.MODID, name, classOf[TEAnalyzer]) {
 
 	this.setHardness(15F)

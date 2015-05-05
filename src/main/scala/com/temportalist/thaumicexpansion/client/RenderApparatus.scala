@@ -1,7 +1,7 @@
 package com.temportalist.thaumicexpansion.client
 
-import com.temportalist.origin.library.common.utility.Scala
-import com.temportalist.origin.wrapper.client.render.TERenderItem
+import com.temportalist.origin.api.common.utility.Scala
+import com.temportalist.origin.foundation.client.render.TERenderItem
 import com.temportalist.thaumicexpansion.client.model.ModelApparatus
 import com.temportalist.thaumicexpansion.common.TEC
 import com.temportalist.thaumicexpansion.common.tile.TEApparatus
@@ -28,10 +28,10 @@ object RenderApparatus extends TERenderItem(new ResourceLocation(TEC.MODID,
 			f5: Float): Unit = {
 		tileEntity match {
 			case tile: TEApparatus =>
-				val facingSide: Int = tile.getFacing()
+				val facingSide: Int = tile.getFacing
 
 				val switchedSideArray: Array[Int] = this.getSwitchedSidesForFacing(facingSide)
-				Scala.foreach(tile.getActiveSides(), (index: Int, isActive: Boolean) => {
+				Scala.foreach(tile.getActiveSides, (index: Int, isActive: Boolean) => {
 					switchedSideArray(index) match {
 						case 1 => // up-top
 							if (this.model.Arch_T.showModel != isActive)

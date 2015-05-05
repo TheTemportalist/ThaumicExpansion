@@ -2,9 +2,8 @@ package com.temportalist.thaumicexpansion.client
 
 import java.util
 
-import com.temportalist.origin.library.client.gui.GuiButtonImg
-import com.temportalist.origin.library.common.network.PacketTileCallback
-import com.temportalist.origin.wrapper.client.gui.GuiContainerWrapper
+import com.temportalist.origin.foundation.client.gui.{GuiContainerBase, GuiButtonImg}
+import com.temportalist.origin.foundation.common.network.PacketTileCallback
 import com.temportalist.thaumicexpansion.common._
 import com.temportalist.thaumicexpansion.common.container.ContainerAnalyzer
 import com.temportalist.thaumicexpansion.common.network.PacketGiveAspect
@@ -24,7 +23,7 @@ import scala.util.control.Breaks.{break, breakable}
  * @author TheTemportalist
  */
 @SideOnly(Side.CLIENT)
-class GuiAnalyzer(c: ContainerAnalyzer) extends GuiContainerWrapper(c) {
+class GuiAnalyzer(c: ContainerAnalyzer) extends GuiContainerBase(c) {
 
 	private final val background: ResourceLocation = new ResourceLocation(
 		TEC.MODID, "textures/gui/thaumicAnalyzer.png")
@@ -187,7 +186,7 @@ class GuiAnalyzer(c: ContainerAnalyzer) extends GuiContainerWrapper(c) {
 			renderPartialTicks: Float, hoverInfo: util.List[String]): Unit = {
 		if (this.isMouseOverArea(mouseX, mouseY,
 			Array[Int](this.guiLeft + 14, this.guiTop + 11, 14, 42))) {
-			hoverInfo.add("Energy: " + this.getTile().getEnergy() +
+			hoverInfo.add("Energy: " + this.getTile().getEnergy +
 					" / " + this.getTile().getMaxEnergy())
 			hoverInfo.add("Buffer: " + this.getTile().loadingEnergy)
 		}

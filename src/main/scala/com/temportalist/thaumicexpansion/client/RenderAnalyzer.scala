@@ -1,6 +1,6 @@
 package com.temportalist.thaumicexpansion.client
 
-import com.temportalist.origin.wrapper.client.render.TERenderItem
+import com.temportalist.origin.foundation.client.render.TERenderItem
 import com.temportalist.thaumicexpansion.client.model.ModelAnalyzer
 import com.temportalist.thaumicexpansion.common.TEC
 import com.temportalist.thaumicexpansion.common.tile.TEAnalyzer
@@ -237,12 +237,12 @@ class RenderAnalyzer extends TERenderItem(new ResourceLocation(TEC.MODID,
 		RenderManager.instance.renderEntityWithPosYaw(ent, 0, 0, 0, 0, 0)
 
 	def renderInput(tile: TEAnalyzer, ticks: Float): Unit = {
-		if (tile.getInput() != null) {
+		if (tile.getInput != null) {
 			GL11.glPushMatrix()
 			GL11.glRotatef(ticks % 360.0F, 0.0F, 1.0F, 0.0F)
 			GL11.glEnable(3042)
 			GL11.glBlendFunc(770, 1) // todo fade as progress nears finishing if decomposing
-			val stack: ItemStack = tile.getInput().copy()
+			val stack: ItemStack = tile.getInput.copy()
 			stack.stackSize = 1
 			val entity: EntityItem = new EntityItem(tile.getWorldObj, 0.0D, 0.0D, 0.0D, stack)
 			entity.hoverStart = MathHelper.sin(ticks / 14.0F) * 0.2F
@@ -255,8 +255,8 @@ class RenderAnalyzer extends TERenderItem(new ResourceLocation(TEC.MODID,
 	}
 
 	def renderFuel(tile: TEAnalyzer, ticks: Float): Unit = {
-		if (tile.getFuel() != null) {
-			val stack: ItemStack = tile.getFuel().copy()
+		if (tile.getFuel != null) {
+			val stack: ItemStack = tile.getFuel.copy()
 			val q: Int = Math.min(stack.stackSize, 6)
 			val angle: Double = 19.9
 			val r: Double = .29

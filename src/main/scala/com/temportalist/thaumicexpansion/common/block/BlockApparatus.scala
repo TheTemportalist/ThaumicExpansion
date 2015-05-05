@@ -1,7 +1,7 @@
 package com.temportalist.thaumicexpansion.common.block
 
-import com.temportalist.origin.library.common.lib.vec.V3O
-import com.temportalist.origin.wrapper.common.block.BlockWrapperTE
+import com.temportalist.origin.api.common.lib.V3O
+import com.temportalist.origin.foundation.common.block.BlockTile
 import com.temportalist.thaumicexpansion.common.TEC
 import com.temportalist.thaumicexpansion.common.tile.TEApparatus
 import net.minecraft.block.Block
@@ -15,7 +15,7 @@ import net.minecraftforge.common.util.ForgeDirection
  * @author TheTemportalist
  */
 class BlockApparatus(name: String)
-		extends BlockWrapperTE(Material.rock, TEC.MODID, name, classOf[TEApparatus]) {
+		extends BlockTile(Material.rock, TEC.MODID, name, classOf[TEApparatus]) {
 
 	this.setHardness(15F)
 	this.setResistance(25F)

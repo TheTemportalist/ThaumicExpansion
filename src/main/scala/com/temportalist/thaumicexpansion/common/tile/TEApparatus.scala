@@ -1,12 +1,13 @@
 package com.temportalist.thaumicexpansion.common.tile
 
 import cofh.api.energy.IEnergyProvider
-import com.temportalist.origin.api.tile.IPacketCallback
-import com.temportalist.origin.library.common.lib.BlockState
-import com.temportalist.origin.library.common.lib.vec.V3O
-import com.temportalist.origin.library.common.network.PacketTileCallback
-import com.temportalist.origin.library.common.utility.Stacks
-import com.temportalist.thaumicexpansion.common.cofh.TraitEnergyReceiver
+import com.temportalist.origin.api.common.lib.{BlockState, V3O}
+import com.temportalist.origin.api.common.utility.Stacks
+import com.temportalist.origin.foundation.common.network.PacketTileCallback
+import com.temportalist.origin.foundation.common.tile.IPacketCallback
+import com.temportalist.thaumicexpansion.api.cofh.TraitEnergyReceiver
+import com.temportalist.thaumicexpansion.api.common.tile.IEnergable
+import cpw.mods.fml.relauncher.Side
 import net.minecraft.init.Blocks
 import net.minecraft.nbt.NBTTagCompound
 import net.minecraft.tileentity.TileEntity
@@ -22,9 +23,9 @@ class TEApparatus extends TileEntity with TraitEnergyReceiver with IPacketCallba
 	var activeSides: Array[Boolean] = Array[Boolean](false, false, false, false, false, false)
 	var connectedCoord: V3O = null
 
-	override def getMaxEnergy(): Int = 16000 // 1 coal
+	override def getMaxEnergy: Int = 16000 // 1 coal
 
-	def getFacing(): Int = {
+	def getFacing: Int = {
 		// world can be null if tile is the dummy inside of an item render
 		if (this.worldObj == null) 0
 		else this.getBlockMetadata
@@ -43,7 +44,7 @@ class TEApparatus extends TileEntity with TraitEnergyReceiver with IPacketCallba
 			return
 		}
 
-		val amountInTicks: Int = this.getEnergy() / 10
+		val amountInTicks: Int = this.getEnergy / 10
 		if (amountInTicks > 0) {
 			val maxAmountPerTick: Int = 20
 			val amt: Int = Math.min(amountInTicks, maxAmountPerTick)
@@ -60,12 +61,12 @@ class TEApparatus extends TileEntity with TraitEnergyReceiver with IPacketCallba
 					}
 					*/
 				case energable: IEnergable =>
-					if (energable.getEnergy() + amt <= energable.getMaxEnergy()) {
+					if (energable.getEnergy + amt <= energable.getMaxEnergy) {
 						if (energable.addEnergy(amt, doOp = false) > 0) {
 							energable.addEnergy(amt, doOp = true)
-							this.storage.setEnergyStored((this.getEnergy() / 10 - amt) * 10)
-							new PacketTileCallback(this).add("EnergyAndThat").add(this.getEnergy()).
-									add(new V3O(energable)).add(energable.getEnergy())
+							this.storage.setEnergyStored((this.getEnergy / 10 - amt) * 10)
+							new PacketTileCallback(this).add("EnergyAndThat").add(this.getEnergy).
+									add(new V3O(energable)).add(energable.getEnergy)
 									.sendToClients()
 						}
 					}
@@ -78,7 +79,7 @@ class TEApparatus extends TileEntity with TraitEnergyReceiver with IPacketCallba
 	def isValidConnectorTile(thatTile: TileEntity): Boolean =
 		TEApparatus.isValidConnectorTile(thatTile)
 
-	def getActiveSides(): Array[Boolean] = this.activeSides
+	def getActiveSides: Array[Boolean] = this.activeSides
 
 	def checkAllSides(): Unit = {
 		val thisVec: V3O = new V3O(this)
@@ -103,7 +104,7 @@ class TEApparatus extends TileEntity with TraitEnergyReceiver with IPacketCallba
 	def refreshConnected(): Unit =
 		this.connectedCoord = new V3O(this) + ForgeDirection.getOrientation(this.getBlockMetadata)
 
-	override def packetCallback(packet: PacketTileCallback, isServer: Boolean): Unit = {
+	override def packetCallback(packet: PacketTileCallback, side: Side): Unit = {
 		packet.get[String] match {
 			case "SideChange" =>
 				this.activeSides(packet.get[Int]) = packet.get[Boolean]

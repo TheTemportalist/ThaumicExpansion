@@ -1,8 +1,8 @@
 package com.temportalist.thaumicexpansion.common.container
 
-import com.temportalist.origin.library.common.container.{SlotOutput, SlotValidate}
-import com.temportalist.origin.library.common.utility.Scala
-import com.temportalist.origin.wrapper.common.inventory.ContainerWrapper
+import com.temportalist.origin.api.common.container.{SlotOutput, SlotValidate}
+import com.temportalist.origin.api.common.inventory.ContainerWrapper
+import com.temportalist.origin.api.common.utility.Scala
 import com.temportalist.thaumicexpansion.common.tile.TEAnalyzer
 import cpw.mods.fml.relauncher.{SideOnly, Side}
 import net.minecraft.entity.player.EntityPlayer

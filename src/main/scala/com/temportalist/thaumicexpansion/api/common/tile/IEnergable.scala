@@ -1,6 +1,6 @@
-package com.temportalist.thaumicexpansion.common.tile
+package com.temportalist.thaumicexpansion.api.common.tile
 
-import com.temportalist.origin.api.inventory.IInv
+import com.temportalist.origin.api.common.inventory.IInv
 import cpw.mods.fml.common.registry.GameRegistry
 import net.minecraft.init.Items
 import net.minecraft.item.ItemStack
@@ -19,24 +19,24 @@ trait IEnergable extends TileEntity with IInv {
 
 	def slotFuel(): Int
 
-	def getMaxEnergy(): Int
+	def getMaxEnergy: Int
 
-	def getFuel(): ItemStack = this.getStackInSlot(this.slotFuel())
+	def getFuel: ItemStack = this.getStackInSlot(this.slotFuel())
 
-	def getEnergy(): Int = this.currentEnergy
+	def getEnergy: Int = this.currentEnergy
 
 	def setEnergy(e: Int): Unit = this.currentEnergy = e
 
 	def scaleEnergy(max: Double): Int = {
-		((this.currentEnergy.toDouble / this.getMaxEnergy().toDouble) * max).toInt
+		((this.currentEnergy.toDouble / this.getMaxEnergy.toDouble) * max).toInt
 	}
 
 	def checkEnergy(): Unit = {
-		val fuel: ItemStack = this.getFuel()
+		val fuel: ItemStack = this.getFuel
 		if (fuel != null) {
 			val fuelEnergy: Int = this.getFuelEnergy(fuel)
 			if (fuelEnergy > 0 && this.loadingEnergy == 0 &&
-					this.currentEnergy + fuelEnergy <= this.getMaxEnergy()) {
+					this.currentEnergy + fuelEnergy <= this.getMaxEnergy) {
 				this.loadingEnergy += fuelEnergy
 				this.decrStackSize(this.slotFuel(), 1)
 			}
@@ -81,7 +81,7 @@ trait IEnergable extends TileEntity with IInv {
 	 * @return The amount added (amt if getMaxEnergy >= amt, getMaxEnergy otherwise)
 	 */
 	def addEnergy(amt: Int, doOp: Boolean): Int = {
-		val amount: Int = Math.min(amt, this.getMaxEnergy())
+		val amount: Int = Math.min(amt, this.getMaxEnergy)
 		if (!doOp) amount
 		else {
 			this.currentEnergy += amount

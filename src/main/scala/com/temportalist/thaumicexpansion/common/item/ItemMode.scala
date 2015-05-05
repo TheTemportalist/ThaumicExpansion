@@ -2,8 +2,8 @@ package com.temportalist.thaumicexpansion.common.item
 
 import java.util.{List, UUID}
 
-import com.temportalist.origin.library.common.utility.Players
-import com.temportalist.origin.wrapper.common.item.ItemWrapper
+import com.temportalist.origin.foundation.common.item.ItemBase
+import com.temportalist.origin.foundation.common.utility.Players
 import com.temportalist.thaumicexpansion.common.TEC
 import cpw.mods.fml.relauncher.{Side, SideOnly}
 import net.minecraft.client.renderer.texture.IIconRegister
@@ -19,7 +19,7 @@ import net.minecraft.world.World
  *
  * @author TheTemportalist
  */
-class ItemMode(name: String, private var names: Array[String]) extends ItemWrapper(TEC.MODID, name) {
+class ItemMode(name: String, private var names: Array[String]) extends ItemBase(TEC.MODID, name) {
 
 	this.setHasSubtypes(true)
 

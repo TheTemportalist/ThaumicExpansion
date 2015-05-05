@@ -2,7 +2,9 @@ package com.temportalist.thaumicexpansion.common.tile
 
 import java.util.UUID
 
-import com.temportalist.origin.library.common.utility.{Players, Stacks}
+import com.temportalist.origin.api.common.utility.Stacks
+import com.temportalist.origin.foundation.common.utility.Players
+import com.temportalist.thaumicexpansion.api.common.tile.{IOperator, IOperation, IEnergable}
 import com.temportalist.thaumicexpansion.common.TEC
 import com.temportalist.thaumicexpansion.common.init.TECItems
 import net.minecraft.item.ItemStack
@@ -20,16 +22,16 @@ class OperationAnalyzer(max: Int, private var energyCost: Int) extends IOperatio
 	this.maxTicks = max
 
 	override def canRun(tileEntity: TileEntity, operator: IOperator): Boolean = {
-		Stacks.canFit(operator.getInput(), operator.getOutput()) &&
+		Stacks.canFit(operator.getInput, operator.getOutput) &&
 				tileEntity.isInstanceOf[IEnergable] &&
-				tileEntity.asInstanceOf[IEnergable].getEnergy() >= this.energyCost
+				tileEntity.asInstanceOf[IEnergable].getEnergy >= this.energyCost
 	}
 
 	override def run(tileEntity: TileEntity, operator: IOperator): Unit = {
 		if (!this.canRun(tileEntity, operator)) return
 		tileEntity match {
 			case te: TEAnalyzer =>
-				val pUUID: UUID = TECItems.modeItem.getUUID(te.getModeStack())
+				val pUUID: UUID = TECItems.modeItem.getUUID(te.getModeStack)
 				val pName: String = Players.getUserName(pUUID)
 				if (pName != null) {
 					val input: ItemStack = operator.getInput

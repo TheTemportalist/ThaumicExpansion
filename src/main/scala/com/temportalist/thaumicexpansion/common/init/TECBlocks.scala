@@ -1,7 +1,7 @@
 package com.temportalist.thaumicexpansion.common.init
 
-import com.temportalist.origin.library.common.register.BlockRegister
-import com.temportalist.origin.library.common.utility.Stacks
+import com.temportalist.origin.api.common.utility.Stacks
+import com.temportalist.origin.foundation.common.register.BlockRegister
 import com.temportalist.thaumicexpansion.common.TEC
 import com.temportalist.thaumicexpansion.common.block.{BlockAnalyzer, BlockApparatus}
 import com.temportalist.thaumicexpansion.common.tile.{TEAnalyzer, TEApparatus}
