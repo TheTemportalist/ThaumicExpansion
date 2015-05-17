@@ -241,7 +241,7 @@ class TEAnalyzer()
 		this.reduceEnergy(data(0).asInstanceOf[Int], true)
 
 		this.currentOP = null // todo will not syncing this reset the op on sync or save?
-		this.markDirty
+		this.markDirty()
 
 		this.syncEnergyAspectsInv()
 	}

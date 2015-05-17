@@ -74,7 +74,6 @@ trait IOperation {
 				/*
 				else tile match {
 					case callback: IPacketCallback =>
-						// todo, not every tick
 						new PacketTileCallback(tile).add("Ticks").add(this.ticksForOperation).sendToClients()
 					case _ =>
 				}

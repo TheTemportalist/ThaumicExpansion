@@ -6,6 +6,8 @@ import com.temportalist.thaumicexpansion.common.TEC
 import com.temportalist.thaumicexpansion.common.tile.TEApparatus
 import net.minecraft.block.Block
 import net.minecraft.block.material.Material
+import net.minecraft.entity.EntityLivingBase
+import net.minecraft.item.ItemStack
 import net.minecraft.world.{IBlockAccess, World}
 import net.minecraftforge.common.util.ForgeDirection
 
@@ -34,18 +36,23 @@ class BlockApparatus(name: String)
 			subY: Float, subZ: Float, metadata: Int): Int =
 		ForgeDirection.getOrientation(side).getOpposite.ordinal()
 
+	override def onBlockPlacedBy(world: World, x: Int, y: Int, z: Int, placer: EntityLivingBase,
+			stack: ItemStack): Unit = this.checkTileSides(world, x, y, z)
+
 	override def onNeighborBlockChange(worldIn: World, x: Int, y: Int, z: Int,
-			neighbor: Block): Unit ={
-		worldIn.getTileEntity(x, y, z) match {
-			case tile: TEApparatus => tile.checkAllSides()
-			case _ =>
-		}
-	}
+			neighbor: Block): Unit = this.checkTileSides(worldIn, x, y, z)
 
 	override def onNeighborChange(world: IBlockAccess, x: Int, y: Int, z: Int, tileX: Int,
 			tileY: Int, tileZ: Int): Unit = world.getTileEntity(x, y, z) match {
 		case tile: TEApparatus => tile.checkSide(new V3O(tile), new V3O(tileX, tileY, tileZ))
 		case _ =>
+	}
+
+	private def checkTileSides(world: World, x: Int, y: Int, z: Int): Unit = {
+		world.getTileEntity(x, y, z) match {
+			case tile: TEApparatus => tile.checkAllSides()
+			case _ =>
+		}
 	}
 
 }

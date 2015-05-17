@@ -55,8 +55,6 @@ class OperationDecomposer(tile: TEAnalyzer)
 			case te: TEAnalyzer =>
 				val pUUID: UUID = TECItems.modeItem.getUUID(te.getModeStack)
 
-				// todo hide aspects in gui as ?s if player doesnt know them
-
 				if (pUUID != null) TEC.addAspects(pUUID, this.aspects)
 				else te.addAspects(this.aspects)
 

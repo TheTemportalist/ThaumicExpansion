@@ -3,6 +3,7 @@ package com.temportalist.thaumicexpansion.client
 import java.util
 
 import com.temportalist.origin.api.client.gui.GuiContainerBase
+import com.temportalist.origin.api.client.utility.Rendering
 import com.temportalist.origin.foundation.client.gui.GuiButtonImg
 import com.temportalist.origin.foundation.common.network.PacketTileCallback
 import com.temportalist.thaumicexpansion.common._
@@ -11,10 +12,12 @@ import com.temportalist.thaumicexpansion.common.network.PacketGiveAspect
 import com.temportalist.thaumicexpansion.common.tile.TEAnalyzer
 import cpw.mods.fml.relauncher.{Side, SideOnly}
 import net.minecraft.client.gui.{Gui, GuiButton}
+import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.util.ResourceLocation
 import org.lwjgl.opengl.GL11
 import thaumcraft.api.aspects.{Aspect, AspectList}
 import thaumcraft.client.lib.UtilsFX
+import thaumcraft.common.Thaumcraft
 
 import scala.util.control.Breaks.{break, breakable}
 
@@ -113,8 +116,9 @@ class GuiAnalyzer(c: ContainerAnalyzer) extends GuiContainerBase(c) {
 					val index: Int = i + this.getAspectOffset
 					if (index >= 0 && index < aspects.length && aspects(index) != null &&
 							this.isMouseOverArea(mouseX, mouseY, this.aspectSlots(i))) {
-						new PacketGiveAspect(this.getTile(),
-							index, mouseButton == 0).sendToServer()
+						if (this.doesPlayerKnow(Rendering.thePlayer, aspects(index)))
+							new PacketGiveAspect(this.getTile(),
+								index, mouseButton == 0).sendToServer()
 						break()
 					}
 				}
@@ -176,11 +180,30 @@ class GuiAnalyzer(c: ContainerAnalyzer) extends GuiContainerBase(c) {
 			if (aspectI < aspects.length) {
 				val x: Int = this.aspectSlots(i)(0)
 				val y: Int = this.aspectSlots(i)(1)
-				UtilsFX.drawTag(x, y, aspects(aspectI),
-					aspectList.getAmount(aspects(aspectI)), 0, this.zLevel)
+				val aspect = aspects(aspectI)
+				if (this.doesPlayerKnow(Rendering.thePlayer, aspect)) {
+					UtilsFX.drawTag(x, y, aspects(aspectI),
+						aspectList.getAmount(aspects(aspectI)), 0, this.zLevel)
+				}
+				else {
+					UtilsFX.bindTexture("textures/aspects/_unknown.png")
+					GL11.glPushMatrix()
+					GL11.glColor4f(0.8F, 0.8F, 0.8F, 0.5F)
+					GL11.glEnable(3042)
+					GL11.glBlendFunc(770, 771)
+					GL11.glTranslated(x, y, 0.0D)
+					UtilsFX.drawTexturedQuadFull(0, 0, this.zLevel)
+					GL11.glDisable(3042)
+					GL11.glPopMatrix()
+				}
 			}
 		}
 
+	}
+
+	private def doesPlayerKnow(player: EntityPlayer, aspect: Aspect): Boolean = {
+		Thaumcraft.proxy.getPlayerKnowledge.hasDiscoveredAspect(
+			player.getCommandSenderName, aspect)
 	}
 
 	override protected def addInformationOnHover(mouseX: Int, mouseY: Int,
