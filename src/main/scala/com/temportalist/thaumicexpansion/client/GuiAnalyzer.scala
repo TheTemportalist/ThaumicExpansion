@@ -2,7 +2,8 @@ package com.temportalist.thaumicexpansion.client
 
 import java.util
 
-import com.temportalist.origin.foundation.client.gui.{GuiContainerBase, GuiButtonImg}
+import com.temportalist.origin.api.client.gui.GuiContainerBase
+import com.temportalist.origin.foundation.client.gui.GuiButtonImg
 import com.temportalist.origin.foundation.common.network.PacketTileCallback
 import com.temportalist.thaumicexpansion.common._
 import com.temportalist.thaumicexpansion.common.container.ContainerAnalyzer

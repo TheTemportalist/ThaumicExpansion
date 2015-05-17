@@ -3,8 +3,8 @@ package com.temportalist.thaumicexpansion.common
 import java.util
 import java.util.UUID
 
-import com.temportalist.origin.api.common.IModDetails
 import com.temportalist.origin.api.common.lib.Pair
+import com.temportalist.origin.api.common.resource.IModDetails
 import com.temportalist.origin.foundation.common.IMod
 import com.temportalist.origin.foundation.common.utility.Players
 import com.temportalist.origin.internal.common.handlers.RegisterHelper
@@ -78,7 +78,7 @@ object TEC extends IMod with IModDetails {
 
 	@Mod.EventHandler
 	def preInit(event: FMLPreInitializationEvent): Unit = {
-		super.preInitialize(this.MODID, this.MODNAME, event, this.proxy, null, TECBlocks, TECItems)
+		super.preInitialize(this, event, this.proxy, null, TECBlocks, TECItems)
 
 		this.registerPackets(classOf[PacketGiveAspect])
 

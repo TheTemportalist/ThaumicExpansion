@@ -2,7 +2,7 @@ package com.temportalist.thaumicexpansion.common.block
 
 import java.util
 
-import com.temportalist.origin.foundation.common.block.BlockTile
+import com.temportalist.origin.api.common.block.BlockTile
 import com.temportalist.thaumicexpansion.common.TEC
 import com.temportalist.thaumicexpansion.common.init.TECBlocks
 import com.temportalist.thaumicexpansion.common.tile.TEAnalyzer

@@ -1,6 +1,6 @@
 package com.temportalist.thaumicexpansion.client
 
-import com.temportalist.origin.foundation.client.render.TERenderItem
+import com.temportalist.origin.api.client.render.TERenderItem
 import com.temportalist.thaumicexpansion.client.model.ModelAnalyzer
 import com.temportalist.thaumicexpansion.common.TEC
 import com.temportalist.thaumicexpansion.common.tile.TEAnalyzer

@@ -1,7 +1,7 @@
 package com.temportalist.thaumicexpansion.common.block
 
+import com.temportalist.origin.api.common.block.BlockTile
 import com.temportalist.origin.api.common.lib.V3O
-import com.temportalist.origin.foundation.common.block.BlockTile
 import com.temportalist.thaumicexpansion.common.TEC
 import com.temportalist.thaumicexpansion.common.tile.TEApparatus
 import net.minecraft.block.Block

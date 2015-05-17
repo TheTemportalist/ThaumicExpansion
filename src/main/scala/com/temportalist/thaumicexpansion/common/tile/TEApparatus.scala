@@ -86,7 +86,7 @@ class TEApparatus extends TileEntity with TraitEnergyReceiver with IPacketCallba
 		for (dir: ForgeDirection <- ForgeDirection.VALID_DIRECTIONS) this.checkSide(thisVec, dir)
 	}
 
-	def checkSide(vec: V3O, coord: V3O): Unit = this.checkSide(vec, (vec - coord).getDir())
+	def checkSide(vec: V3O, coord: V3O): Unit = this.checkSide(vec, (vec - coord).getDir)
 
 	def checkSide(vec: V3O, dir: ForgeDirection): Unit = {
 		val preCheck: Boolean = this.activeSides(dir.ordinal())

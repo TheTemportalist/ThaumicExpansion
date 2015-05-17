@@ -1,7 +1,7 @@
 package com.temportalist.thaumicexpansion.client
 
+import com.temportalist.origin.api.client.render.TERenderItem
 import com.temportalist.origin.api.common.utility.Scala
-import com.temportalist.origin.foundation.client.render.TERenderItem
 import com.temportalist.thaumicexpansion.client.model.ModelApparatus
 import com.temportalist.thaumicexpansion.common.TEC
 import com.temportalist.thaumicexpansion.common.tile.TEApparatus

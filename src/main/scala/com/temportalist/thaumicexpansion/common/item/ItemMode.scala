@@ -2,7 +2,7 @@ package com.temportalist.thaumicexpansion.common.item
 
 import java.util.{List, UUID}
 
-import com.temportalist.origin.foundation.common.item.ItemBase
+import com.temportalist.origin.api.common.item.ItemBase
 import com.temportalist.origin.foundation.common.utility.Players
 import com.temportalist.thaumicexpansion.common.TEC
 import cpw.mods.fml.relauncher.{Side, SideOnly}
