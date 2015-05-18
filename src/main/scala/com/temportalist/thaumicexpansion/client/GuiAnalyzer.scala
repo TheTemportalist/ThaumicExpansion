@@ -116,7 +116,7 @@ class GuiAnalyzer(c: ContainerAnalyzer) extends GuiContainerBase(c) {
 					val index: Int = i + this.getAspectOffset
 					if (index >= 0 && index < aspects.length && aspects(index) != null &&
 							this.isMouseOverArea(mouseX, mouseY, this.aspectSlots(i))) {
-						if (this.doesPlayerKnow(Rendering.thePlayer, aspects(index)))
+						if (this.doesPlayerKnow(Rendering.mc.thePlayer, aspects(index)))
 							new PacketGiveAspect(this.getTile(),
 								index, mouseButton == 0).sendToServer()
 						break()
@@ -181,7 +181,7 @@ class GuiAnalyzer(c: ContainerAnalyzer) extends GuiContainerBase(c) {
 				val x: Int = this.aspectSlots(i)(0)
 				val y: Int = this.aspectSlots(i)(1)
 				val aspect = aspects(aspectI)
-				if (this.doesPlayerKnow(Rendering.thePlayer, aspect)) {
+				if (this.doesPlayerKnow(Rendering.mc.thePlayer, aspect)) {
 					UtilsFX.drawTag(x, y, aspects(aspectI),
 						aspectList.getAmount(aspects(aspectI)), 0, this.zLevel)
 				}
