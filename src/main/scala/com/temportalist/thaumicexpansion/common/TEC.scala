@@ -30,7 +30,7 @@ import thaumcraft.common.lib.research.{PlayerKnowledge, ScanManager}
  */
 @Mod(modid = TEC.MODID, name = TEC.MODNAME, version = TEC.VERSION, modLanguage = "scala",
 	dependencies = "required-after:Thaumcraft@[4.2,);" +
-			"required-after:origin@[5.0,);" +
+			"required-after:origin@[5,);" +
 			"after:CoFHCore@[1.7.10R3.0.0RC7,);" +
 			"after:ThermalFoundation@[1.7.10R1.0.0RC7,);" +
 			"after:ThermalExpansion@[1.7.10R4.0.0RC7,);"
