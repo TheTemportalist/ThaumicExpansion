@@ -39,7 +39,7 @@ object TEC extends IMod with IModDetails {
 
 	final val MODID = "thaumicexpansion"
 	final val MODNAME = "Thaumic Expansion"
-	final val VERSION = "2.0.0"
+	final val VERSION = "3.0.0"//"@PLUGIN_VERSION@"
 	final val PROXY_CLIENT = "com.temportalist.thaumicexpansion.client.ProxyClient"
 	final val PROXY_SERVER = "com.temportalist.thaumicexpansion.common.ProxyCommon"
 
