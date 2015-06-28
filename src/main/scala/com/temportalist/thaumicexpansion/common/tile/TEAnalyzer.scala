@@ -407,8 +407,4 @@ class TEAnalyzer()
 
 	}
 
-	override def markChunkModified(): Unit = {
-		this.worldObj.markTileEntityChunkModified(this.xCoord, this.yCoord, this.zCoord, this)
-	}
-
 }

@@ -49,7 +49,7 @@ class GuiAnalyzer(c: ContainerAnalyzer) extends GuiContainerBase(c) {
 	private def container: ContainerAnalyzer =
 		this.inventorySlots.asInstanceOf[ContainerAnalyzer]
 
-	def getTile(): TEAnalyzer = this.container.getTileEntity().asInstanceOf[TEAnalyzer]
+	def getTile(): TEAnalyzer = this.container.getTileEntity.asInstanceOf[TEAnalyzer]
 
 	override def initGui(): Unit = {
 		super.initGui()

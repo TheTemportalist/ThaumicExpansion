@@ -1,7 +1,7 @@
 package com.temportalist.thaumicexpansion.common.container
 
 import com.temportalist.origin.api.common.container.{SlotOutput, SlotValidate}
-import com.temportalist.origin.api.common.inventory.ContainerWrapper
+import com.temportalist.origin.api.common.inventory.ContainerBase
 import com.temportalist.origin.api.common.utility.Scala
 import com.temportalist.thaumicexpansion.common.tile.TEAnalyzer
 import cpw.mods.fml.relauncher.{SideOnly, Side}
@@ -16,7 +16,7 @@ import net.minecraft.inventory.ICrafting
  * @author TheTemportalist
  */
 class ContainerAnalyzer(tile: TEAnalyzer, player: EntityPlayer)
-		extends ContainerWrapper(player, tile) {
+		extends ContainerBase(player, tile) {
 
 	/**
 	 * Used to register slots for this container
@@ -47,7 +47,7 @@ class ContainerAnalyzer(tile: TEAnalyzer, player: EntityPlayer)
 
 	override def detectAndSendChanges(): Unit = {
 		super.detectAndSendChanges()
-		this.getTileEntity() match {
+		this.getTileEntity match {
 			case tile: TEAnalyzer =>
 				val progress: Int = tile.getProgress
 				if (this.localProgress != progress) {
