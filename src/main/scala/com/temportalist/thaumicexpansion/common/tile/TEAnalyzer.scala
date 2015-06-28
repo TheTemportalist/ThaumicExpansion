@@ -119,7 +119,13 @@ class TEAnalyzer()
 
 	def setMode(stack: ItemStack, placer: EntityLivingBase): Unit = {
 		placer match {
-			case p: EntityPlayer => TECItems.modeItem.setUUID(stack, p.getGameProfile.getId)
+			case p: EntityPlayer =>
+				var id = p.getGameProfile.getId
+				if (id == null && p.getGameProfile.getName != null)
+					id = UUID.fromString(p.getGameProfile.getName)
+				else throw new IllegalArgumentException(
+					"Name and ID cannot both be blank in GameProfile")
+				TECItems.modeItem.setUUID(stack, id)
 			case _ =>
 		}
 		this.setInventorySlotContents(this.MODE, stack)
