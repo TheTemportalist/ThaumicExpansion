@@ -36,11 +36,6 @@ class ContainerAnalyzer(tile: TEAnalyzer, player: EntityPlayer)
 
 	override def canInteractWith(player: EntityPlayer): Boolean = true
 
-	/**
-	 * @return the number of slots that are present and connected to this inventory
-	 */
-	override def getInventorySlotSize(): Int = 4
-
 	private var localProgress: Int = 0
 
 	def getProgress(): Int =this.localProgress
