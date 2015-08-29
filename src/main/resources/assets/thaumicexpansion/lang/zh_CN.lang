@@ -1,0 +1,31 @@
+tile.thaumicexpansion:thaumicanalyzer.name=神秘分析仪
+item.thaumicexpansion:playerTracker.name=玩家追踪器
+item.thaumicexpansion:decomposer.name=分解器
+
+tile.thaumicexpansion:arcaneApparatus.name=秘法机关
+
+tile.thaumicexpansion:thaumicAnalyzer:0=神秘分析仪 (基础)
+tile.thaumicexpansion:thaumicAnalyzer:1=神秘分析仪 (硬化)
+tile.thaumicexpansion:thaumicAnalyzer:2=神秘分析仪 (强化)
+tile.thaumicexpansion:thaumicAnalyzer:3=神秘分析仪 (谐振)
+item.thaumicexpansion:itemKeeper.itemKeeper.name=物品保存器
+item.thaumicexpansion:thaumicAdjuster.thaumicAdjuster.name=神秘调节器
+item.thaumicexpansion:playerTracker.playerTracker.name=玩家追踪器
+item.thaumicexpansion:decomposer.decomposer.name=分解器升级
+
+tc.research_category.THAUMICEXPANSION=神秘膨胀
+tc.research_name.THAUMICANALYZER=神秘分析仪
+tc.research_text.THAUMICANALYZER=自动魔导透镜
+tc.research_page.THAUMICANALYZER.1=This is where the description for the thaumic analyzer will go.
+tc.research_name.PLAYERTRACKER=玩家追踪器
+tc.research_text.PLAYERTRACKER=追查神秘使
+tc.research_page.PLAYERTRACKER.1=This is where the description for the player tracker will go.
+tc.research_name.DECOMPOSER=分解仪
+tc.research_text.DECOMPOSER=更好地分解
+tc.research_page.DECOMPOSER.1=This is where the description for the decomposer will go.
+tc.research_name.ITEMKEEPER=物品保存器
+tc.research_text.ITEMKEEPER=帮你保管物品, 所以不必纠结
+tc.research_page.ITEMKEEPER.1=This is where the description for the item keeper will go.
+tc.research_name.THAUMICADJUSTER=神秘调节器
+tc.research_text.THAUMICADJUSTER=改善你的施法条件
+tc.research_page.THAUMICADJUSTER.1=This is where the description for the thaumic adjuster will go.
