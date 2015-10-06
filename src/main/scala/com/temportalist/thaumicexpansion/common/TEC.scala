@@ -14,14 +14,23 @@ import com.temportalist.thaumicexpansion.server.CommandTEC
 import cpw.mods.fml.common.event.{FMLInitializationEvent, FMLPostInitializationEvent, FMLPreInitializationEvent}
 import cpw.mods.fml.common.eventhandler.SubscribeEvent
 import cpw.mods.fml.common.gameevent.PlayerEvent
+import cpw.mods.fml.common.registry.GameRegistry
 import cpw.mods.fml.common.{Mod, SidedProxy}
 import net.minecraft.entity.player.EntityPlayer
+import net.minecraft.init.Items
+import net.minecraft.item.crafting.IRecipe
 import net.minecraft.item.{Item, ItemStack}
+import net.minecraft.util.ResourceLocation
+import net.minecraftforge.oredict.ShapedOreRecipe
+import thaumcraft.api.ThaumcraftApi
 import thaumcraft.api.aspects.{Aspect, AspectList}
-import thaumcraft.api.research.ScanResult
+import thaumcraft.api.research.{ResearchCategories, ResearchItem, ResearchPage, ScanResult}
 import thaumcraft.common.Thaumcraft
+import thaumcraft.common.config.{ConfigBlocks, ConfigItems}
 import thaumcraft.common.lib.crafting.ThaumcraftCraftingManager
 import thaumcraft.common.lib.research.{PlayerKnowledge, ScanManager}
+
+import scala.collection.mutable.ListBuffer
 
 /**
  *
@@ -39,7 +48,8 @@ object TEC extends IMod with IModDetails {
 
 	final val MODID = "thaumicexpansion"
 	final val MODNAME = "Thaumic Expansion"
-	final val VERSION = "3.0.0"//"@PLUGIN_VERSION@"
+	final val VERSION = "3.0.0"
+	//"@PLUGIN_VERSION@"
 	final val PROXY_CLIENT = "com.temportalist.thaumicexpansion.client.ProxyClient"
 	final val PROXY_SERVER = "com.temportalist.thaumicexpansion.common.ProxyCommon"
 
@@ -57,7 +67,7 @@ object TEC extends IMod with IModDetails {
 	/**
 	 * Maps the complexity of the aspect to the time and energy per aspect
 	 */
-	final val timeEnergyPerStats: List[Pair[Int, Int]] = List[Pair[Int, Int]] (
+	final val timeEnergyPerStats: List[Pair[Int, Int]] = List[Pair[Int, Int]](
 		new Pair[Int, Int](20, 50),
 		new Pair[Int, Int](60, 50),
 		new Pair[Int, Int](100, 50)
@@ -76,6 +86,9 @@ object TEC extends IMod with IModDetails {
 		Array[Double](1, .9, .85)
 	)
 
+	val zeroMeta = Array[Int](0)
+	val category = "THAUMICEXPANSION"
+
 	@Mod.EventHandler
 	def preInit(event: FMLPreInitializationEvent): Unit = {
 		super.preInitialize(this, event, this.proxy, null, TECBlocks, TECItems)
@@ -93,6 +106,7 @@ object TEC extends IMod with IModDetails {
 
 	@Mod.EventHandler
 	def postInit(event: FMLPostInitializationEvent): Unit = {
+		super.postInitialize(event, this.proxy)
 		TEC.aspectTiers.put(Aspect.AIR, 1)
 		TEC.aspectTiers.put(Aspect.EARTH, 1)
 		TEC.aspectTiers.put(Aspect.FIRE, 1)
@@ -110,6 +124,112 @@ object TEC extends IMod with IModDetails {
 		TEC.aspectTiers.put(Aspect.POISON, 2)
 		TEC.aspectTiers.put(Aspect.ENERGY, 2)
 		TEC.aspectTiers.put(Aspect.EXCHANGE, 2)
+
+		this.registerThaumcraftIntegration()
+
+	}
+
+	private final def registerThaumcraftIntegration(): Unit = {
+		ResearchCategories.registerCategory(category,
+			new ResourceLocation(TEC.MODID, "textures/items/opticalScanner.png"),
+			new ResourceLocation("thaumcraft", "textures/gui/gui_researchback.png")
+		)
+
+		val allMeta = Array[Int](0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)
+
+		val analyzerStack = new ItemStack(TECBlocks.analyzer)
+		/*
+		val research = new ResearchItem("THAUMICANALYZER", this.category,
+			new AspectList().add(Aspect.AIR, 1), 0, 0, 0, analyzerStack)
+		research.setParents("GOGGLES").registerResearchItem()
+		*/
+		this.addTemp("THAUMICANALYZER", new AspectList().add(Aspect.AIR, 1), 0, 0, 0,
+			analyzerStack,
+			Array[ResearchPage](
+				new ResearchPage("tc.research_page.THAUMICANALYZER.1")
+			),
+			Array[IRecipe](
+				new ShapedOreRecipe(analyzerStack,
+					"isi", "i i", "wdw",
+					Char.box('i'), "ingotIron",
+					Char.box('s'), ConfigItems.itemThaumometer,
+					Char.box('w'), new ItemStack(ConfigBlocks.blockMagicalLog, 1, 0),
+					Char.box('d'), "gemDiamond"
+				)
+
+			),
+			new AspectList().add(Aspect.MIND, 4).add(Aspect.METAL, 2)
+					.add(Aspect.MECHANISM, 10).add(Aspect.MAGIC, 7),
+			this.zeroMeta, "GOGGLES"
+		)
+
+		val apparatusStack = new ItemStack(TECBlocks.apparatus)
+		TEC.addTemp(
+			"THAUMICAPPARATUS", new AspectList().add(Aspect.AIR, 1), 2, 0, 0, apparatusStack,
+			Array[ResearchPage](
+				new ResearchPage("tc.research_page.THAUMICAPPARATUS.1")
+			),
+			Array[IRecipe](
+				new ShapedOreRecipe(apparatusStack,
+					"trt", "rgr", "trt",
+					Char.box('t'), "ingotThaumium",
+					Char.box('r'), "dustRedstone",
+					Char.box('g'), "ingotGold"
+				)
+			),
+			new AspectList().add(Aspect.MIND, 4).add(Aspect.METAL, 2)
+					.add(Aspect.MECHANISM, 10).add(Aspect.MAGIC, 7),
+			TEC.zeroMeta, "THAUMICANALYZER"
+		)
+
+		TEC.addTemp(
+			"PLAYERTRACKER", new AspectList().add(Aspect.AIR, 1), -1, 2, 0,
+			TECItems.playerTracker,
+			Array[ResearchPage](
+				new ResearchPage("tc.research_page.PLAYERTRACKER.1")
+			),
+			Array[IRecipe](
+				new ShapedOreRecipe(TECItems.playerTracker,
+					"ttt", "tbt", "ttt",
+					Char.box('t'), "ingotThaumium",
+					Char.box('b'), ConfigItems.itemZombieBrain
+				)
+			), new AspectList(), TEC.zeroMeta, "THAUMICANALYZER"
+		)
+
+		TEC.addTemp(
+			"DECOMPOSER", new AspectList().add(Aspect.AIR, 1), 1, 2, 0,
+			TECItems.decomposer,
+			Array[ResearchPage](
+				new ResearchPage("tc.research_page.DECOMPOSER.1")
+			),
+			Array[IRecipe](
+				new ShapedOreRecipe(TECItems.decomposer,
+					"sss", "sss", "sss",
+					Char.box('s'), Items.stick
+				)
+			), new AspectList(), Array[Int](1), "THAUMICANALYZER"
+		)
+
+	}
+
+	def addTemp(key: String, researchAspects: AspectList, row: Int, col: Int, complexity: Int,
+			objectStack: ItemStack, pages: Array[ResearchPage], recipes: Array[IRecipe],
+			objectAspects: AspectList, possibleMetadata: Array[Int], parent: String): Unit = {
+		ThaumcraftApi.registerObjectTag(objectStack, possibleMetadata, objectAspects)
+
+		val research = new ResearchItem(key, this.category, researchAspects,
+			row, col, complexity, objectStack)
+
+		val allPages: ListBuffer[ResearchPage] = new ListBuffer[ResearchPage]()
+		pages.foreach(allPages.+=)
+		recipes.foreach(recipe => {
+			GameRegistry.addRecipe(recipe)
+			allPages += new ResearchPage(recipe)
+		})
+
+		JavaHelper.setResearchPages(research, allPages.toArray)
+				.setParents(parent).registerResearchItem()
 	}
 
 	// todo save to disk

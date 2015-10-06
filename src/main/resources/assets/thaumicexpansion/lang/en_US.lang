@@ -21,9 +21,10 @@ tc.research_page.THAUMICANALYZER.1=This is where the description for the thaumic
 tc.research_name.PLAYERTRACKER=Player Tracker
 tc.research_text.PLAYERTRACKER=Tracking mystical players
 tc.research_page.PLAYERTRACKER.1=This is where the description for the player tracker will go.
-tc.research_name.DECOMPOSER=Decomposer
-tc.research_text.DECOMPOSER=Better Deconstruction
+tc.research_name.DECOMPOSER=Decomposer Upgrade
+tc.research_text.DECOMPOSER=Aspect Deconstruction
 tc.research_page.DECOMPOSER.1=This is where the description for the decomposer will go.
+
 tc.research_name.ITEMKEEPER=Item Keeper
 tc.research_text.ITEMKEEPER=Saving your items, so you don't have to
 tc.research_page.ITEMKEEPER.1=This is where the description for the item keeper will go.

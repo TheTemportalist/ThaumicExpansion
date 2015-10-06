@@ -8,10 +8,11 @@ import com.temportalist.origin.api.common.tile.ITileSaver
 import com.temportalist.origin.foundation.common.network.PacketTileCallback
 import com.temportalist.origin.foundation.common.tile.IPacketCallback
 import com.temportalist.origin.foundation.common.utility.Players
-import com.temportalist.thaumicexpansion.api.common.tile.{IOperator, IOperation, IEnergable}
+import com.temportalist.thaumicexpansion.api.common.tile.{IEnergable, IOperation, IOperator}
 import com.temportalist.thaumicexpansion.common._
 import com.temportalist.thaumicexpansion.common.init.TECItems
 import cpw.mods.fml.common.FMLLog
+import cpw.mods.fml.relauncher.Side
 import net.minecraft.entity.item.EntityItem
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.entity.{Entity, EntityLivingBase}
@@ -20,14 +21,15 @@ import net.minecraft.item.{Item, ItemStack}
 import net.minecraft.nbt.NBTTagCompound
 import net.minecraft.tileentity.TileEntity
 import net.minecraftforge.common.util.ForgeDirection
+import org.apache.commons.lang3.StringUtils
 import thaumcraft.api.aspects.{Aspect, AspectList, IAspectContainer}
 import thaumcraft.api.research.ScanResult
 import thaumcraft.api.{ThaumcraftApi, ThaumcraftApiHelper}
 import thaumcraft.common.Thaumcraft
 import thaumcraft.common.lib.research.{PlayerKnowledge, ScanManager}
+import thaumcraft.common.tiles.TileVisRelay
 
 import scala.util.control.Breaks.{break, breakable}
-import cpw.mods.fml.relauncher.Side
 
 /**
  *
@@ -35,7 +37,7 @@ import cpw.mods.fml.relauncher.Side
  * @author TheTemportalist
  */
 class TEAnalyzer()
-		extends TileEntity with IInv with IEnergable with IOperator with ISidedInventory with
+		extends TileVisRelay with IInv with IEnergable with IOperator with ISidedInventory with
 		IAspectContainer with ITileSaver with IPacketCallback {
 
 	override def getInventoryName: String = "Thaumic Analyzer"
@@ -62,6 +64,8 @@ class TEAnalyzer()
 
 	private var aspects: AspectList = new AspectList
 
+	override def isSource: Boolean = false
+
 	override def updateEntity(): Unit = {
 		this.checkEnergy()
 
@@ -71,26 +75,39 @@ class TEAnalyzer()
 				case 0 =>
 					this.currentMode = "analyzer"
 					if (this.currentOP == null)
-						this.currentOP = new OperationAnalyzer(2 * 20, 50)
+						this.currentOP = new OperationAnalyzer(50)
 				case 1 =>
 					this.currentMode = "decomposer"
 					if (this.currentOP == null)
 						this.currentOP = new OperationDecomposer(this)
 			}
 			if (this.currentOP != null) {
-				if (this.getInput != null) this.currentOP.onUpdate(this, this)
+				if (this.getInput != null) {
+					this.currentOP.setMaxTicks(this.getTicksForItem(this.getInput))
+					this.currentOP.onUpdate(this, this)
+				}
 				else this.currentOP.reset()
 			}
 		}
 		else this.currentMode = ""
+	}
 
-		/*
-		println(
-			(if (this.worldObj.isRemote) "Client: " else "Server: ") +
-					(if (this.currentOP == null) 0 else this.currentOP.getTicks)
-		)
-		*/
-
+	def getTicksForItem(input: ItemStack): Int = {
+		if (input != null) {
+			val list = ThaumcraftApiHelper.getObjectAspects(input)
+			var time = 0
+			list.getAspects.foreach(aspect => {
+				TEC.getAspectTier(aspect) match {
+					case 1 => time += list.getAmount(aspect) * 2
+					case 2 => time += list.getAmount(aspect) * 5
+					case 3 => time += list.getAmount(aspect) * 10
+					case _ => throw new IllegalArgumentException("ERROR: Aspect " + aspect.getName
+							+ " does not have a tier accounted for.")
+				}
+			})
+			time
+		}
+		else 40
 	}
 
 	override def onStackChange(slot: Int): Unit = {
@@ -121,10 +138,15 @@ class TEAnalyzer()
 		placer match {
 			case p: EntityPlayer =>
 				var id = p.getGameProfile.getId
-				if (id == null && p.getGameProfile.getName != null)
-					id = UUID.fromString(p.getGameProfile.getName)
-				else throw new IllegalArgumentException(
-					"Name and ID cannot both be blank in GameProfile")
+				println(p.getGameProfile.getId)
+				println(p.getGameProfile.getName)
+				if (id == null) {
+					if (StringUtils.isBlank(p.getGameProfile.getName))
+						throw new IllegalArgumentException(
+							"Name and ID cannot both be blank in GameProfile")
+					else
+						id = UUID.fromString(p.getGameProfile.getName)
+				}
 				TECItems.modeItem.setUUID(stack, id)
 			case _ =>
 		}

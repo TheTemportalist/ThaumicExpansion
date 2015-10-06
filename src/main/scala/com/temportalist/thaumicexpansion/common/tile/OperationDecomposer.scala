@@ -2,6 +2,7 @@ package com.temportalist.thaumicexpansion.common.tile
 
 import java.util.UUID
 
+import com.temportalist.origin.api.common.lib.V3O
 import com.temportalist.origin.api.common.utility.Stacks
 import com.temportalist.thaumicexpansion.api.common.tile.{IOperator, IOperation, IEnergable}
 import com.temportalist.thaumicexpansion.common.TEC
@@ -9,6 +10,7 @@ import com.temportalist.thaumicexpansion.common.init.TECItems
 import net.minecraft.item.ItemStack
 import net.minecraft.nbt.NBTTagCompound
 import net.minecraft.tileentity.TileEntity
+import net.minecraft.world.World
 import thaumcraft.api.aspects.{Aspect, AspectList}
 
 /**
@@ -17,7 +19,13 @@ import thaumcraft.api.aspects.{Aspect, AspectList}
  * @author TheTemportalist
  */
 class OperationDecomposer(tile: TEAnalyzer)
-		extends IOperation {
+		extends IVisOperation {
+
+	private var pos: (World, V3O) = null
+
+	this.addCentiVisDemandPerTick(Aspect.MINE, 3)
+
+	override def getPosition: (World, V3O) = this.pos
 
 	private var energyCost: Int = 0
 	var secondaryOutput: Boolean = tile.getWorldObj.rand.nextDouble() < 0.1D
@@ -44,6 +52,7 @@ class OperationDecomposer(tile: TEAnalyzer)
 	}
 
 	override def canRun(tileEntity: TileEntity, operator: IOperator): Boolean = {
+		this.pos = (tileEntity.getWorldObj, new V3O(tileEntity))
 		Stacks.canFit(operator.getInput, operator.getOutput) &&
 				tileEntity.isInstanceOf[IEnergable] &&
 				tileEntity.asInstanceOf[IEnergable].getEnergy >= this.energyCost

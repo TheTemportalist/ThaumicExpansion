@@ -11,7 +11,7 @@ import net.minecraft.tileentity.TileEntity
 trait IOperation {
 
 	protected var maxTicks: Int = 0
-	private var currentTicks: Int = -1
+	protected var currentTicks: Int = -1
 
 	def ticksForOperation: Int = this.maxTicks
 
@@ -19,11 +19,13 @@ trait IOperation {
 
 	def start(): Unit = this.currentTicks = 0
 
-	def tick(): Unit = this.currentTicks += 1
+	def tick(tile: TileEntity): Unit = this.currentTicks += 1
 
 	def getTicks: Int = this.currentTicks
 
 	def setTicks(t: Int): Unit = this.currentTicks = t
+
+	def setMaxTicks(t: Int): Unit = this.maxTicks = t
 
 	def canRun(tileEntity: TileEntity, operator: IOperator): Boolean
 
@@ -58,14 +60,14 @@ trait IOperation {
 
 	def onUpdate(tile: TileEntity, op: IOperator): Unit = {
 		if (!this.isRunning) {
-			if (this.canRun(tile, op)) this.start
+			if (this.canRun(tile, op)) this.start()
 		}
 		else {
 			if (!this.canRun(tile, op)) {
-				this.reset
+				this.reset()
 			}
 			else {
-				this.tick
+				this.tick(tile)
 				if (this.areTicksReady) {
 					if (!tile.getWorldObj.isRemote) {
 						this.run(tile, op)

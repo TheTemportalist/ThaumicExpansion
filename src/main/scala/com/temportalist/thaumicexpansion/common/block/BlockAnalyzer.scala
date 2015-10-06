@@ -1,18 +1,15 @@
 package com.temportalist.thaumicexpansion.common.block
 
-import java.util
-
 import com.temportalist.origin.api.common.block.BlockTile
 import com.temportalist.thaumicexpansion.common.TEC
-import com.temportalist.thaumicexpansion.common.init.TECBlocks
 import com.temportalist.thaumicexpansion.common.tile.TEAnalyzer
 import net.minecraft.block.material.Material
-import net.minecraft.creativetab.CreativeTabs
 import net.minecraft.entity.EntityLivingBase
 import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.item.{Item, ItemStack}
+import net.minecraft.item.ItemStack
 import net.minecraft.util.MathHelper
-import net.minecraft.world.World
+import net.minecraft.world.{IBlockAccess, World}
+import net.minecraftforge.common.util.ForgeDirection
 
 /**
  *
@@ -29,10 +26,15 @@ class BlockAnalyzer(name: String) extends BlockTile(
 
 	override def isOpaqueCube: Boolean = false
 
+	/*
 	override def getSubBlocks(item: Item, tab: CreativeTabs, list: util.List[_]): Unit = {
 		for (stack: ItemStack <- TECBlocks.analyzerStacks)
 			list.asInstanceOf[util.List[ItemStack]].add(stack)
 	}
+	*/
+
+	override def isSideSolid(world: IBlockAccess, x: Int, y: Int, z: Int,
+			side: ForgeDirection): Boolean = side == ForgeDirection.DOWN
 
 	override def onBlockPlacedBy(world: World, x: Int, y: Int, z: Int, placer: EntityLivingBase,
 			stack: ItemStack): Unit = {
@@ -40,7 +42,8 @@ class BlockAnalyzer(name: String) extends BlockTile(
 			case tile: TEAnalyzer =>
 				if (tile == null || stack.getTagCompound == null) return
 				tile.setTier(stack.getTagCompound.getInteger("tier"))
-				val facing: Int = MathHelper.floor_double(placer.rotationYaw * 4.0F / 360.0F + 0.5D) & 0x3
+				val facing: Int =
+					MathHelper.floor_double(placer.rotationYaw * 4.0F / 360.0F + 0.5D) & 0x3
 				tile.setFacing(facing match {
 					case 0 => 2
 					case 1 => 5
