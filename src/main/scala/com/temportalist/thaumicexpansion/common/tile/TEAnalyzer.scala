@@ -135,11 +135,10 @@ class TEAnalyzer()
 	def setFacing(i: Int): Unit = this.facing = i
 
 	def setMode(stack: ItemStack, placer: EntityLivingBase): Unit = {
+		/*
 		placer match {
 			case p: EntityPlayer =>
 				var id = p.getGameProfile.getId
-				println(p.getGameProfile.getId)
-				println(p.getGameProfile.getName)
 				if (id == null) {
 					if (StringUtils.isBlank(p.getGameProfile.getName))
 						throw new IllegalArgumentException(
@@ -150,6 +149,7 @@ class TEAnalyzer()
 				TECItems.modeItem.setUUID(stack, id)
 			case _ =>
 		}
+		*/
 		this.setInventorySlotContents(this.MODE, stack)
 	}
 
