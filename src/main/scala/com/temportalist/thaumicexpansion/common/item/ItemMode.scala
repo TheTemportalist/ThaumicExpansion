@@ -3,6 +3,7 @@ package com.temportalist.thaumicexpansion.common.item
 import java.util.{List, UUID}
 
 import com.temportalist.origin.api.common.item.ItemBase
+import com.temportalist.origin.api.common.utility.Generic
 import com.temportalist.origin.foundation.common.utility.Players
 import com.temportalist.thaumicexpansion.api.common.tile.IOperation
 import com.temportalist.thaumicexpansion.common.TEC
@@ -42,10 +43,9 @@ class ItemMode(name: String, private var names: Array[String]) extends ItemBase(
 		if (stack.hasTagCompound) {
 			val uuid = UUID.fromString(stack.getTagCompound.getString("uuid"))
 			val name = Players.getUserName(uuid)
-			info.asInstanceOf[List[String]].add(
-				"UUID: " + uuid.toString + "\n" +
-				"Player: " + (if (name != null) name else stack.getTagCompound.getString("name"))
-			)
+			Generic.addToList(info, "UUID: " + uuid.toString)
+			Generic.addToList(info,
+				"Player: " + (if (name != null) name else stack.getTagCompound.getString("name")))
 		}
 	}
 
