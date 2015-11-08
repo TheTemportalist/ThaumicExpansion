@@ -15,7 +15,6 @@ import com.temportalist.thaumicexpansion.server.CommandTEC
 import cpw.mods.fml.common.event.{FMLInitializationEvent, FMLPostInitializationEvent, FMLPreInitializationEvent}
 import cpw.mods.fml.common.eventhandler.SubscribeEvent
 import cpw.mods.fml.common.gameevent.PlayerEvent
-import cpw.mods.fml.common.registry.GameRegistry
 import cpw.mods.fml.common.{Mod, SidedProxy}
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.init.Items
@@ -23,15 +22,12 @@ import net.minecraft.item.crafting.IRecipe
 import net.minecraft.item.{Item, ItemStack}
 import net.minecraft.util.ResourceLocation
 import net.minecraftforge.oredict.ShapedOreRecipe
-import thaumcraft.api.ThaumcraftApi
 import thaumcraft.api.aspects.{Aspect, AspectList}
-import thaumcraft.api.research.{ResearchCategories, ResearchItem, ResearchPage, ScanResult}
+import thaumcraft.api.research.{ResearchCategories, ResearchPage, ScanResult}
 import thaumcraft.common.Thaumcraft
 import thaumcraft.common.config.{ConfigBlocks, ConfigItems}
 import thaumcraft.common.lib.crafting.ThaumcraftCraftingManager
 import thaumcraft.common.lib.research.{PlayerKnowledge, ScanManager}
-
-import scala.collection.mutable.ListBuffer
 
 /**
  *
@@ -49,7 +45,7 @@ object TEC extends IMod with IModDetails {
 
 	final val MODID = "thaumicexpansion"
 	final val MODNAME = "Thaumic Expansion"
-	final val VERSION = "3.0.0"
+	final val VERSION = "@MOD_VERSION@"
 	//"@PLUGIN_VERSION@"
 	final val PROXY_CLIENT = "com.temportalist.thaumicexpansion.client.ProxyClient"
 	final val PROXY_SERVER = "com.temportalist.thaumicexpansion.common.ProxyCommon"

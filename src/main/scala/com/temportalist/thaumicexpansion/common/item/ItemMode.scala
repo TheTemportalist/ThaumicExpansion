@@ -40,9 +40,12 @@ class ItemMode(name: String, private var names: Array[String]) extends ItemBase(
 	override def addInformation(stack: ItemStack, player: EntityPlayer, info: List[_],
 			bool: Boolean): Unit = {
 		if (stack.hasTagCompound) {
-			info.asInstanceOf[List[String]].add("Player: " + Players.getUserName(
-				stack.getTagCompound.getString("uuid")
-			))
+			val uuid = UUID.fromString(stack.getTagCompound.getString("uuid"))
+			val name = Players.getUserName(uuid)
+			info.asInstanceOf[List[String]].add(
+				"UUID: " + uuid.toString + "\n" +
+				"Player: " + (if (name != null) name else stack.getTagCompound.getString("name"))
+			)
 		}
 	}
 
@@ -70,13 +73,22 @@ class ItemMode(name: String, private var names: Array[String]) extends ItemBase(
 	override def onItemRightClick(stack: ItemStack, world: World,
 			player: EntityPlayer): ItemStack = {
 		if (player.isSneaking) {
-			val copy: ItemStack = stack.copy()
-			this.setUUID(copy, player.getGameProfile.getId)
-			player.setCurrentItemOrArmor(0, copy)
-			stack
+			var id = player.getGameProfile.getId
+			val name = player.getGameProfile.getName
+
+			if (id == null) {
+				if (name != null) id = Players.usernameToId.get(name)
+				else Players.message(player,
+					"ID and Name of your GameProfile are null. Report this to mod author.")
+			}
+			if (id != null) {
+				val copy: ItemStack = stack.copy()
+				this.setUUID(copy, player.getGameProfile.getId)
+				copy.getTagCompound.setString("name", name)
+				player.setCurrentItemOrArmor(0, copy)
+			}
 		}
-		else
-			stack
+		stack
 	}
 
 	def getOperationForStack(stack: ItemStack): IOperation = {
