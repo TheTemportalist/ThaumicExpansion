@@ -4,7 +4,9 @@ import java.util.{List, UUID}
 
 import com.temportalist.origin.api.common.item.ItemBase
 import com.temportalist.origin.foundation.common.utility.Players
+import com.temportalist.thaumicexpansion.api.common.tile.IOperation
 import com.temportalist.thaumicexpansion.common.TEC
+import com.temportalist.thaumicexpansion.common.tile.{OperationDecomposer, OperationAnalyzer}
 import cpw.mods.fml.relauncher.{Side, SideOnly}
 import net.minecraft.client.renderer.texture.IIconRegister
 import net.minecraft.creativetab.CreativeTabs
@@ -75,6 +77,14 @@ class ItemMode(name: String, private var names: Array[String]) extends ItemBase(
 		}
 		else
 			stack
+	}
+
+	def getOperationForStack(stack: ItemStack): IOperation = {
+		stack.getItemDamage match {
+			case 0 => new OperationAnalyzer().setEnergyCost(50)
+			case 1 => new OperationDecomposer
+			case _ => null
+		}
 	}
 
 }

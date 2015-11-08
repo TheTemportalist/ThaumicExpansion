@@ -1,4 +1,6 @@
 
+command.tec=tec clearKnow [playerName]\ntec spawnNode type modifier aspect=quantity,aspect=quantity...
+
 tile.thaumicexpansion:thaumicanalyzer.name=Thaumic Analyzer
 item.thaumicexpansion:playerTracker.name=Player Tracker
 item.thaumicexpansion:decomposer.name=Decomposer

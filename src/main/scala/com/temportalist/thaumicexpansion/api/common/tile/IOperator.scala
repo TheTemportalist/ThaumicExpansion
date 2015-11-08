@@ -13,6 +13,6 @@ trait IOperator {
 
 	def getOutput: ItemStack
 
-	def finishedOperation(setInput: ItemStack, toOutput: ItemStack, data: Array[Any]): Unit
+	def onOperationCompletion(operation: IOperation): Unit
 
 }

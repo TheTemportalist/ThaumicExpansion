@@ -1,175 +1,141 @@
 package com.temportalist.thaumicexpansion.common.tile
 
 import java.util
-import java.util.{Arrays, List, UUID}
+import java.util.UUID
 
-import com.temportalist.origin.api.common.inventory.IInv
 import com.temportalist.origin.api.common.tile.ITileSaver
+import com.temportalist.origin.api.common.utility.Stacks
 import com.temportalist.origin.foundation.common.network.PacketTileCallback
 import com.temportalist.origin.foundation.common.tile.IPacketCallback
 import com.temportalist.origin.foundation.common.utility.Players
-import com.temportalist.thaumicexpansion.api.common.tile.{IEnergable, IOperation, IOperator}
-import com.temportalist.thaumicexpansion.common._
+import com.temportalist.thaumicexpansion.api.common.tile.{IEnergable, IOperation}
+import com.temportalist.thaumicexpansion.common.TEC
 import com.temportalist.thaumicexpansion.common.init.TECItems
+import com.temportalist.thaumicexpansion.common.item.ItemMode
+import com.temportalist.thaumicexpansion.common.lib.ThaumcraftHelper
 import cpw.mods.fml.common.FMLLog
 import cpw.mods.fml.relauncher.Side
+import net.minecraft.entity.Entity
 import net.minecraft.entity.item.EntityItem
 import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.entity.{Entity, EntityLivingBase}
-import net.minecraft.inventory.ISidedInventory
 import net.minecraft.item.{Item, ItemStack}
 import net.minecraft.nbt.NBTTagCompound
 import net.minecraft.tileentity.TileEntity
-import net.minecraftforge.common.util.ForgeDirection
-import org.apache.commons.lang3.StringUtils
 import thaumcraft.api.aspects.{Aspect, AspectList, IAspectContainer}
 import thaumcraft.api.research.ScanResult
 import thaumcraft.api.{ThaumcraftApi, ThaumcraftApiHelper}
 import thaumcraft.common.Thaumcraft
 import thaumcraft.common.lib.research.{PlayerKnowledge, ScanManager}
-import thaumcraft.common.tiles.TileVisRelay
 
-import scala.util.control.Breaks.{break, breakable}
+import scala.util.control.Breaks._
 
 /**
- *
- *
- * @author TheTemportalist
+ * Created by TheTemportalist on 11/7/2015.
  */
-class TEAnalyzer()
-		extends TileVisRelay with IInv with IEnergable with IOperator with ISidedInventory with
-		IAspectContainer with ITileSaver with IPacketCallback {
+class TEAnalyzer extends TileEntity with TileOperator with ITileSaver with IEnergable
+with IAspectContainer with IPacketCallback {
 
-	override def getInventoryName: String = "Thaumic Analyzer"
+	// ~~~~~~~~~~~~~~~~~~~~~~~~ TileOperator ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-	private var tier: Int = 0
-	/**
-	 * The direction the block is facing.
-	 * Default is EAST item rendering
-	 * Set when block is placed
-	 */
-	private var facing: Int = ForgeDirection.EAST.ordinal()
+	private var currentOperation: IOperation = null
 
-	var currentMode: String = ""
+	override def getInputSlot: Int = this.SLOT_INPUT
 
-	private var currentOP: IOperation = null
-	final val hexagonProgressSteps: Int = 13
+	override def getOutputSlot: Int = this.SLOT_OUTPUT
 
-	private var currentColumnOffset: Int = 0
+	def getCurrentModeString: String =
+		this.currentOperation match {
+			case a: OperationAnalyzer => "analyzer"
+			case d: OperationDecomposer => "decomposer"
+			case _ => "null"
+		}
 
-	final val INPUT = 0
-	final val OUTPUT = 2
-	final val MODE = 3
-	this.setSlots(4)
+	override def canOperationRun(operation: IOperation): Boolean = {
+		operation match {
+			case vis_operation: IVisOperation =>
+				val op = this.getInput != null && Stacks.canFit(this.getInput, this.getOutput) &&
+						this.getEnergy >= vis_operation.getEnergyCost
+				vis_operation match {
+					case analyzer: OperationAnalyzer =>
+						op && this.canScan(this.getInput)
+					case _ => op
+				}
+			case _ => true
+		}
+	}
 
-	private var aspects: AspectList = new AspectList
-
-	override def isSource: Boolean = false
-
-	override def updateEntity(): Unit = {
+	override def updateOperator(): Unit = {
 		this.checkEnergy()
 
-		val modeStack: ItemStack = this.getModeStack
-		if (modeStack != null) {
-			modeStack.getItemDamage match {
-				case 0 =>
-					this.currentMode = "analyzer"
-					if (this.currentOP == null)
-						this.currentOP = new OperationAnalyzer(50)
-				case 1 =>
-					this.currentMode = "decomposer"
-					if (this.currentOP == null)
-						this.currentOP = new OperationDecomposer(this)
-			}
-			if (this.currentOP != null) {
-				if (this.getInput != null) {
-					this.currentOP.setMaxTicks(this.getTicksForItem(this.getInput))
-					this.currentOP.onUpdate(this, this)
-				}
-				else this.currentOP.reset()
+		val modeStack = this.getModeStack
+		val input = this.getInput
+
+		if (input == null && this.currentOperation != null) {
+			this.stopOperation(this.currentOperation)
+			this.currentOperation = null
+		}
+		if (input != null && this.currentOperation == null) {
+			modeStack.getItem match {
+				case item: ItemMode =>
+					this.currentOperation = item.getOperationForStack(modeStack)
+					if (this.canOperationRun(this.currentOperation)) {
+						this.currentOperation.setMaxTicks(this.getTicksForItem(input))
+						this.startOperation(this.currentOperation)
+					}
+				case _ =>
 			}
 		}
-		else this.currentMode = ""
+
+		//println(this.currentOperation.getTotalTicks)
+
 	}
 
-	def getTicksForItem(input: ItemStack): Int = {
-		if (input != null) {
-			val list = ThaumcraftApiHelper.getObjectAspects(input)
-			var time = 0
-			list.getAspects.foreach(aspect => {
-				TEC.getAspectTier(aspect) match {
-					case 1 => time += list.getAmount(aspect) * 2
-					case 2 => time += list.getAmount(aspect) * 5
-					case 3 => time += list.getAmount(aspect) * 10
-					case _ => throw new IllegalArgumentException("ERROR: Aspect " + aspect.getName
-							+ " does not have a tier accounted for.")
+	override def onOperationFinished(operation: IOperation): Unit = {
+		this.currentOperation = null
+
+		// mode stack SHOULD be non-null, because the operation is running
+		val pUUID: UUID = TECItems.modeItem.getUUID(this.getModeStack)
+		val pName: String = Players.getUserName(pUUID)
+
+		operation match {
+			case analyzer: OperationAnalyzer =>
+				if (pName != null) {
+					val input: ItemStack = this.getInput
+					val scanResult: ScanResult = this.getScan(input)
+					if (this.isValidScanTarget(pName, scanResult, "@")) {
+						// add the aspects of the item
+						TEC.addScan(pUUID, scanResult)
+						this.finishedOperation(null, input, Array(analyzer.getEnergyCost))
+					}
 				}
-			})
-			time
-		}
-		else 40
-	}
+			case decomposer: OperationDecomposer =>
+				if (pUUID != null) TEC.addAspects(pUUID, decomposer.aspects)
+				else this.addAspects(decomposer.aspects)
 
-	override def onStackChange(slot: Int): Unit = {
-		if (slot == this.MODE || slot == this.INPUT) this.currentOP = null
-		//println(slot + "|" + this.getStackInSlot(slot))
-		//this.syncTile(false)
-	}
-
-	// Data manipulation
-
-	override def slotFuel(): Int = 1
-
-	override def getMaxEnergy(): Int = 1600 * 5
-
-	def getColumnOffset(): Int = this.currentColumnOffset
-
-	def setColumn(i: Int): Unit = this.currentColumnOffset = i
-
-	def getTier(): Int = this.tier
-
-	def setTier(t: Int): Unit = this.tier = t
-
-	def getFacing(): ForgeDirection = ForgeDirection.getOrientation(this.facing)
-
-	def setFacing(i: Int): Unit = this.facing = i
-
-	def setMode(stack: ItemStack, placer: EntityLivingBase): Unit = {
-		/*
-		placer match {
-			case p: EntityPlayer =>
-				var id = p.getGameProfile.getId
-				if (id == null) {
-					if (StringUtils.isBlank(p.getGameProfile.getName))
-						throw new IllegalArgumentException(
-							"Name and ID cannot both be blank in GameProfile")
-					else
-						id = UUID.fromString(p.getGameProfile.getName)
+				var input: ItemStack = this.getInput
+				var output: ItemStack = null
+				if (this.getWorldObj.rand.nextDouble < .1d) {
+					// you are able to keep the item
+					output = input.copy
+					output.stackSize = 1
 				}
-				TECItems.modeItem.setUUID(stack, id)
+				input.stackSize -= 1
+				if (input.stackSize <= 0) input = null
+				this.finishedOperation(input, output, Array(decomposer.getEnergyCost))
 			case _ =>
 		}
-		*/
-		this.setInventorySlotContents(this.MODE, stack)
+
 	}
 
-	def getInput: ItemStack = this.getStackInSlot(this.INPUT)
+	// ~~~~~~~~~~~~~~~~~~~~~~~~ IEnergable ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-	def getOutput: ItemStack = this.getStackInSlot(this.OUTPUT)
+	override def slotFuel(): Int = this.SLOT_FUEL
 
-	def getModeStack: ItemStack = this.getStackInSlot(this.MODE)
+	override def getMaxEnergy: Int = 1600 * 5
 
-	def isProcessing: Boolean = this.currentOP != null && this.currentOP.isRunning
+	// ~~~~~~~~~~~~~~~~~~~~~~~~ Self.Scanning ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-	def getProgress: Int = (
-			if (this.currentOP != null)
-				this.currentOP.getProgress * this.hexagonProgressSteps
-			else 0
-			).asInstanceOf[Int]
-
-	def setOpTicks(ticks: Int): Unit = if (this.currentOP != null) this.currentOP.setTicks(ticks)
-
-	// Scanning
+	def getModeStack: ItemStack = this.getStackInSlot(this.SLOT_MODE)
 
 	def getScan(stack: ItemStack): ScanResult =
 		new ScanResult(1.toByte, Item.getIdFromItem(stack.getItem), stack.getItemDamage, null, "")
@@ -206,12 +172,12 @@ class TEAnalyzer()
 
 		scan.`type` match {
 			case 1 =>
-				val arg: List[_] = Arrays.asList(Item.getItemById(scan.id), scan.meta)
+				val arg = util.Arrays.asList(Item.getItemById(scan.id), scan.meta)
 				if (ThaumcraftApi.groupedObjectTags.containsKey(arg)) {
 					scan.meta = ThaumcraftApi.groupedObjectTags.get(arg)(0)
 				}
-				val list: List[_] = Thaumcraft.proxy.getScannedObjects.get(pName)
-						.asInstanceOf[List[_]]
+				val list = Thaumcraft.proxy.getScannedObjects.get(pName)
+						.asInstanceOf[util.List[_]]
 				if (list != null && list.contains(
 					prefix + ScanManager.generateItemHash(Item.getItemById(scan.id), scan.meta)
 				)) {
@@ -222,18 +188,18 @@ class TEAnalyzer()
 					case item: EntityItem =>
 						val t: ItemStack = item.getEntityItem.copy
 						t.stackSize = 1
-						val arg: List[_] = Arrays.asList(t.getItem, t.getItemDamage)
+						val arg = util.Arrays.asList(t.getItem, t.getItemDamage)
 						if (ThaumcraftApi.groupedObjectTags.containsKey(arg)) {
 							t.setItemDamage(ThaumcraftApi.groupedObjectTags.get(arg)(0))
 						}
-						val list: List[_] = Thaumcraft.proxy.getScannedObjects.get(
-							pName).asInstanceOf[List[_]]
+						val list = Thaumcraft.proxy.getScannedObjects.get(
+							pName).asInstanceOf[util.List[_]]
 						if (list != null && list.contains(
 							prefix + ScanManager.generateItemHash(t.getItem, t.getItemDamage)
 						)) return false
 					case _ =>
-						val list: List[_] = Thaumcraft.proxy.getScannedEntities.get(
-							pName).asInstanceOf[List[_]]
+						val list = Thaumcraft.proxy.getScannedEntities.get(
+							pName).asInstanceOf[util.List[_]]
 						if (list != null) {
 							try {
 								val hash: String = classOf[ScanManager]
@@ -242,13 +208,13 @@ class TEAnalyzer()
 								if (list.contains(prefix + hash)) return false
 							}
 							catch {
-								case e: Exception => e.printStackTrace
+								case e: Exception => e.printStackTrace()
 							}
 						}
 				}
 			case 3 =>
-				val list: List[_] = Thaumcraft.proxy.getScannedPhenomena.get(
-					pName).asInstanceOf[List[_]]
+				val list = Thaumcraft.proxy.getScannedPhenomena.get(
+					pName).asInstanceOf[util.List[_]]
 				if (list != null && list.contains(prefix + scan.phenomena)) {
 					return false
 				}
@@ -258,43 +224,128 @@ class TEAnalyzer()
 		true
 	}
 
-	// Operations
-
-	override def finishedOperation(setInput: ItemStack, toOutput: ItemStack,
+	def finishedOperation(setInput: ItemStack, toOutput: ItemStack,
 			data: Array[Any]): Unit = {
-		this.slots(this.INPUT) = setInput
-		if (this.slots(this.OUTPUT) == null) this.slots(this.OUTPUT) = toOutput
-		else if (toOutput != null) this.slots(this.OUTPUT).stackSize += toOutput.stackSize
+		this.setInventorySlotContents(this.SLOT_INPUT, setInput)
+		if (this.getOutput == null) this.setInventorySlotContents(this.SLOT_OUTPUT, toOutput)
+		else if (toOutput != null) {
+			val output = this.getOutput.copy()
+			output.stackSize += toOutput.stackSize
+			this.setInventorySlotContents(this.SLOT_OUTPUT, output)
+		}
 
-		this.reduceEnergy(data(0).asInstanceOf[Int], true)
+		this.reduceEnergy(data(0).asInstanceOf[Int], doOp = true)
 
-		this.currentOP = null // todo will not syncing this reset the op on sync or save?
-		this.markDirty()
+		//this.markDirty()
 
 		this.syncEnergyAspectsInv()
 	}
 
-	// Inventory
+	def getTicksForItem(input: ItemStack): Int = {
+		if (input != null) {
+			val list = ThaumcraftApiHelper.getObjectAspects(input)
+			var time = 0
+			list.getAspects.foreach(aspect => {
+				TEC.getAspectTier(aspect) match {
+					case 1 => time += list.getAmount(aspect) * 2
+					case 2 => time += list.getAmount(aspect) * 5
+					case 3 => time += list.getAmount(aspect) * 10
+					case _ => throw new IllegalArgumentException("ERROR: Aspect " + aspect.getName
+							+ " does not have a tier accounted for.")
+				}
+			})
+			time
+		}
+		else 40
+	}
+
+	// ~~~~~~~~~~~~~~~~~~~~~~~~ Self.Aspects ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+	def giveAspect(player: EntityPlayer, index: Int, takeOne: Boolean): Unit = {
+		//println("give aspect")
+		val sorted: Array[Aspect] = this.aspects.getAspectsSorted
+		if (index < sorted.length) {
+			val aspect: Aspect = sorted(index)
+			val takenAmount = if (takeOne) 1 else this.aspects.getAmount(aspect)
+			this.aspects.remove(aspect, takenAmount)
+			TEC.addAspects(player, new AspectList().add(aspect, takenAmount))
+			this.syncAspects()
+		}
+		else FMLLog.info("[TEC] Error, out of bounds aspect index of " + index)
+	}
+
+	// ~~~~~~~~~~~~~~~~~~~~~~~~ Self.NBT ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+	override def writeToNBT(tagCom: NBTTagCompound): Unit = {
+		super.writeToNBT(tagCom)
+		this.writeNBT_Energy(tagCom, "Energable")
+		this.aspects.writeToNBT(tagCom, "aspects")
+		tagCom.setInteger("offset", this.currentColumnOffset)
+	}
+
+	override def readFromNBT(tagCom: NBTTagCompound): Unit = {
+		super.readFromNBT(tagCom)
+		this.readNBT_Energy(tagCom, "Energable")
+		this.aspects.readFromNBT(tagCom, "aspects")
+		this.currentColumnOffset = tagCom.getInteger("offset")
+	}
+
+	// ~~~~~~~~~~~~~~~~~~~~~~~~ Self.GUI ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+	final val hexagonProgressSteps: Int = 13
+
+	private var currentColumnOffset: Int = 0
+
+	def getColumnOffset: Int = this.currentColumnOffset
+
+	def setColumnOffset(i: Int): Unit = this.currentColumnOffset = i
+
+	def isProcessing: Boolean = this.currentOperation != null && this.currentOperation.isRunning
+
+	def getProgress: Int = (
+			if (this.currentOperation != null)
+				this.currentOperation.getProgress * this.hexagonProgressSteps
+			else 0
+			).asInstanceOf[Int]
+
+	// ~~~~~~~~~~~~~~~~~~~~~~~~ Inventory ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+	this.setSlots(4)
+	final val SLOT_INPUT = 0
+	final val SLOT_OUTPUT = 2
+	final val SLOT_MODE = 3
+	final val SLOT_FUEL = 1
+
+	override def getInventoryName: String = "Analyzer"
 
 	override def isItemValidForSlot(slot: Int, stack: ItemStack): Boolean = {
-		if (stack == null || slot == this.OUTPUT) true
-		else if (slot == this.INPUT) this.canScan(stack)
+		if (stack == null || slot == this.SLOT_OUTPUT) true
+		else if (slot == this.SLOT_INPUT) this.canScan(stack)
 		else if (slot == this.slotFuel()) this.getFuelEnergy(stack) > 0
-		else if (slot == this.MODE) stack.getItem == TECItems.modeItem
+		else if (slot == this.SLOT_MODE) stack.getItem == TECItems.modeItem
 		else false
 	}
 
 	override def getAccessibleSlotsFromSide(side: Int): Array[Int] =
 		if (side == 0) Array[Int](this.slotFuel())
-		else Array[Int](this.INPUT, this.OUTPUT)
+		else Array[Int](this.SLOT_INPUT, this.SLOT_OUTPUT)
 
 	override def canExtractItem(slot: Int, stack: ItemStack, side: Int): Boolean =
-		slot == this.OUTPUT
+		slot == this.SLOT_OUTPUT
 
 	override def canInsertItem(slot: Int, stack: ItemStack, side: Int): Boolean =
-		slot != this.OUTPUT && slot != this.MODE
+		slot != this.SLOT_OUTPUT && slot != this.SLOT_MODE
 
-	// Aspects
+	override def onStackChange(slot: Int): Unit = {
+		if ((slot == this.SLOT_MODE || slot == this.SLOT_INPUT) && this.currentOperation != null) {
+			this.stopOperation(this.currentOperation)
+			this.currentOperation = null
+		}
+	}
+
+	// ~~~~~~~~~~~~~~~~~~~~~~~~ IAspectContainer ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+	private var aspects: AspectList = new AspectList
 
 	def addAspects(aspects: AspectList): Unit = {
 		this.aspects.add(aspects)
@@ -306,10 +357,9 @@ class TEAnalyzer()
 	override def doesContainerAccept(aspect: Aspect): Boolean = true
 
 	override def doesContainerContain(aspects: AspectList): Boolean = {
-		val aspectSet: Array[AnyRef] = aspects.aspects.keySet().toArray
-		for (i <- 0 until aspectSet.length) {
-			if (this.containerContains(aspectSet(i).asInstanceOf[Aspect]) <= 0) return false
-		}
+		aspects.aspects.keySet().toArray.foreach(aspect => {
+			if (this.containerContains(aspect.asInstanceOf[Aspect]) <= 0) return false
+		})
 		true
 	}
 
@@ -340,7 +390,7 @@ class TEAnalyzer()
 						.asInstanceOf[util.Map.Entry[Aspect, Int]]
 				if (!temp.reduce(pair.getKey, pair.getValue)) {
 					successful = false
-					break
+					break()
 				}
 			}
 		}
@@ -356,18 +406,7 @@ class TEAnalyzer()
 	override def doesContainerContainAmount(aspect: Aspect, amount: Int): Boolean =
 		this.containerContains(aspect) == amount
 
-	def giveAspect(player: EntityPlayer, index: Int, takeOne: Boolean): Unit = {
-		//println("give aspect")
-		val sorted: Array[Aspect] = this.aspects.getAspectsSorted
-		if (index < sorted.length) {
-			val aspect: Aspect = sorted(index)
-			val takenAmount = if (takeOne) 1 else this.aspects.getAmount(aspect)
-			this.aspects.remove(aspect, takenAmount)
-			TEC.addAspects(player, new AspectList().add(aspect, takenAmount))
-			this.syncAspects()
-		}
-		else FMLLog.info("[TEC] Error, out of bounds aspect index of " + index)
-	}
+	// ~~~~~~~~~~~~~~~~~~~~~~~~ IPacketCallback ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 	def syncEnergyAspectsInv(): Unit = {
 		if (!this.worldObj.isRemote) {
@@ -400,33 +439,9 @@ class TEAnalyzer()
 				val dir: Int = if (packet.get[Boolean]) 1 else -1
 				val newStartIndex: Int = dir * 4
 				if (newStartIndex >= 0 && newStartIndex < this.aspects.size())
-					this.setColumn(this.getColumnOffset() + dir)
-			case "Ticks" =>
-				//if (this.currentOP != null) this.currentOP.setTicks(packet.get[Int])
+					this.setColumnOffset(this.getColumnOffset + dir)
 			case _ =>
 		}
-	}
-
-	override def writeToNBT(tagCom: NBTTagCompound): Unit = {
-		super.writeToNBT(tagCom)
-		this.writeNBT_Inv(tagCom, "Inventory")
-		this.writeNBT_Energy(tagCom, "Energable")
-		tagCom.setInteger("tier", this.tier)
-		tagCom.setInteger("facing", this.facing)
-		this.aspects.writeToNBT(tagCom, "aspects")
-		tagCom.setInteger("offset", this.currentColumnOffset)
-
-	}
-
-	override def readFromNBT(tagCom: NBTTagCompound): Unit = {
-		super.readFromNBT(tagCom)
-		this.readNBT_Inv(tagCom, "Inventory")
-		this.readNBT_Energy(tagCom, "Energable")
-		this.tier = tagCom.getInteger("tier")
-		this.facing = tagCom.getInteger("facing")
-		this.aspects.readFromNBT(tagCom, "aspects")
-		this.currentColumnOffset = tagCom.getInteger("offset")
-
 	}
 
 }

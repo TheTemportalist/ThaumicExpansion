@@ -25,10 +25,10 @@ class ContainerAnalyzer(tile: TEAnalyzer, player: EntityPlayer)
 	 */
 	override protected def registerSlots(): Unit = {
 
-		this.addSlotToContainer(new SlotValidate(tile, tile.INPUT, 54, 30))
+		this.addSlotToContainer(new SlotValidate(tile, tile.SLOT_INPUT, 54, 30))
 		this.addSlotToContainer(new SlotValidate(tile, tile.slotFuel(), 13, 56))
-		this.addSlotToContainer(new SlotOutput(tile, tile.OUTPUT, 88, 56))
-		this.addSlotToContainer(new SlotValidate(tile, tile.MODE, 88, 6))
+		this.addSlotToContainer(new SlotOutput(tile, tile.SLOT_OUTPUT, 88, 56))
+		this.addSlotToContainer(new SlotValidate(tile, tile.SLOT_MODE, 88, 6))
 
 		this.registerPlayerSlots(0, 0)
 

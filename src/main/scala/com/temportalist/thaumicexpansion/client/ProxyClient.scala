@@ -3,7 +3,7 @@ package com.temportalist.thaumicexpansion.client
 import com.temportalist.thaumicexpansion.common.ProxyCommon
 import com.temportalist.thaumicexpansion.common.container.ContainerAnalyzer
 import com.temportalist.thaumicexpansion.common.init.TECBlocks
-import com.temportalist.thaumicexpansion.common.tile.{TEApparatus, TEAnalyzer}
+import com.temportalist.thaumicexpansion.common.tile.{TEAnalyzer, TEApparatus}
 import cpw.mods.fml.client.registry.ClientRegistry
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.item.Item

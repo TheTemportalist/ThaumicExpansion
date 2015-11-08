@@ -75,12 +75,14 @@ class RenderAnalyzer extends TERenderItem(new ResourceLocation(TEC.MODID,
 				*/
 				val ticks: Float = Minecraft.getMinecraft.renderViewEntity.ticksExisted + f5
 
+				/*
 				GL11.glRotatef((tile.getFacing() match {
 					case ForgeDirection.WEST => 1
 					case ForgeDirection.SOUTH => 2
 					case ForgeDirection.EAST => 3
 					case _ => 0 // North, or anything else
 				}) * 90, 0, 1, 0)
+				*/
 
 				GL11.glPushMatrix()
 				GL11.glRotatef(180, 0, 0, 1)
@@ -90,7 +92,7 @@ class RenderAnalyzer extends TERenderItem(new ResourceLocation(TEC.MODID,
 
 
 				GL11.glScaled(0.8, 0.8, 0.8)
-				this.renderScanner(tile.getWorldObj, tile.currentMode, ticks)
+				this.renderScanner(tile.getWorldObj, tile.getCurrentModeString, ticks)
 
 				GL11.glPushMatrix()
 				this.renderInput(tile, ticks)
@@ -120,6 +122,7 @@ class RenderAnalyzer extends TERenderItem(new ResourceLocation(TEC.MODID,
 				val sidePackage: String = "textures/blocks/thaumicAnalyzer/side" +
 						sideAdjusted + "/"
 				//String.format("textures/blocks/thaumicAnalyzer/side%d/", sideAdjusted)
+				/*
 				GL11.glPushMatrix()
 				//this.renderSide(tile, side, side_x, side_y, side_z)
 				this.bindTexture(new ResourceLocation(TEC.MODID,
@@ -127,6 +130,7 @@ class RenderAnalyzer extends TERenderItem(new ResourceLocation(TEC.MODID,
 				))
 				this.drawSide(tile, side_x, side_y, side_z, side)
 				GL11.glPopMatrix()
+				*/
 				GL11.glPushMatrix()
 				//this.renderPort(tile, side, side_x, side_y, side_z)
 				this.bindTexture(new ResourceLocation(TEC.MODID,
@@ -139,8 +143,6 @@ class RenderAnalyzer extends TERenderItem(new ResourceLocation(TEC.MODID,
 		GL11.glEnable(GL11.GL_LIGHTING)
 		GL11.glPopMatrix()
 	}
-
-	def getSideTex(tile: TEAnalyzer, side: ForgeDirection): Any = tile.getTier()
 
 	def getPortTex(tile: TEAnalyzer, side: ForgeDirection): Any = "colours/default"
 

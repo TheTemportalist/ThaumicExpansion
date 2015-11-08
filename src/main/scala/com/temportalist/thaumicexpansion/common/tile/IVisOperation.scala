@@ -31,22 +31,20 @@ trait IVisOperation extends IOperation {
 		aspects
 	}
 
-	def getPosition: (World, V3O)
-
-	override def tick(tile: TileEntity): Unit = {
+	override def tick(tile: TileOperator): Unit = {
 		var ticksToAdd = 1
+		/*
 		tile match {
 			case visRelay: TileVisRelay =>
-				val pos = this.getPosition
-				if (pos != null && this.demands.size() > 0) {
+				if (this.demands.size() > 0) {
 					var canBoost = true
 					this.demands.getAspects.foreach(aspect => {
 						// filling the buffer
 						val amountOfAspectNeeded =
 							this.demands.getAmount(aspect) - this.buffer.getAmount(aspect)
 						if (amountOfAspectNeeded > 0) {
-							val drained = VisNetHandler.drainVis(pos._1,
-								pos._2.x_i(), pos._2.y_i(), pos._2.z_i(),
+							val drained = VisNetHandler.drainVis(tile.getWorldObj,
+								tile.xCoord, tile.yCoord, tile.zCoord,
 								aspect, amountOfAspectNeeded)
 							//println(aspect.getName + ":" + drained)
 							this.buffer.add(aspect, drained)
@@ -63,6 +61,8 @@ trait IVisOperation extends IOperation {
 				}
 			case _ =>
 		}
+		*/
+		//println("IVisOperation: adding " + ticksToAdd + " ticks in tick(TileOperator).")
 		this.currentTicks += ticksToAdd
 	}
 

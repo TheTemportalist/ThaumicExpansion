@@ -41,6 +41,7 @@ class BlockAnalyzer(name: String) extends BlockTile(
 		world.getTileEntity(x, y, z) match {
 			case tile: TEAnalyzer =>
 				if (tile == null || stack.getTagCompound == null) return
+				/*
 				tile.setTier(stack.getTagCompound.getInteger("tier"))
 				val facing: Int =
 					MathHelper.floor_double(placer.rotationYaw * 4.0F / 360.0F + 0.5D) & 0x3
@@ -55,6 +56,7 @@ class BlockAnalyzer(name: String) extends BlockTile(
 				})
 				tile.setMode(ItemStack.loadItemStackFromNBT(
 					stack.getTagCompound.getCompoundTag("mode")), placer)
+				*/
 			case _ =>
 		}
 	}

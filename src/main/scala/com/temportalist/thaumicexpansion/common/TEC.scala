@@ -9,6 +9,7 @@ import com.temportalist.origin.foundation.common.IMod
 import com.temportalist.origin.foundation.common.utility.Players
 import com.temportalist.origin.internal.common.handlers.RegisterHelper
 import com.temportalist.thaumicexpansion.common.init.{TECBlocks, TECItems}
+import com.temportalist.thaumicexpansion.common.lib.ThaumcraftHelper
 import com.temportalist.thaumicexpansion.common.network.PacketGiveAspect
 import com.temportalist.thaumicexpansion.server.CommandTEC
 import cpw.mods.fml.common.event.{FMLInitializationEvent, FMLPostInitializationEvent, FMLPreInitializationEvent}
@@ -95,7 +96,7 @@ object TEC extends IMod with IModDetails {
 
 		this.registerPackets(classOf[PacketGiveAspect])
 
-		RegisterHelper.registerCommand(new CommandTEC)
+		RegisterHelper.registerCommand(CommandTEC)
 
 	}
 
@@ -135,16 +136,11 @@ object TEC extends IMod with IModDetails {
 			new ResourceLocation("thaumcraft", "textures/gui/gui_researchback.png")
 		)
 
-		val allMeta = Array[Int](0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)
-
 		val analyzerStack = new ItemStack(TECBlocks.analyzer)
-		/*
-		val research = new ResearchItem("THAUMICANALYZER", this.category,
-			new AspectList().add(Aspect.AIR, 1), 0, 0, 0, analyzerStack)
-		research.setParents("GOGGLES").registerResearchItem()
-		*/
-		this.addTemp("THAUMICANALYZER", new AspectList().add(Aspect.AIR, 1), 0, 0, 0,
-			analyzerStack,
+		ThaumcraftHelper.addResearchData(
+			"THAUMICANALYZER", this.category, (List("GOGGLES"), null),
+			analyzerStack, 0, 0,
+			new AspectList().add(Aspect.AIR, 1), 1,
 			Array[ResearchPage](
 				new ResearchPage("tc.research_page.THAUMICANALYZER.1")
 			),
@@ -156,16 +152,17 @@ object TEC extends IMod with IModDetails {
 					Char.box('w'), new ItemStack(ConfigBlocks.blockMagicalLog, 1, 0),
 					Char.box('d'), "gemDiamond"
 				)
-
 			),
 			new AspectList().add(Aspect.MIND, 4).add(Aspect.METAL, 2)
 					.add(Aspect.MECHANISM, 10).add(Aspect.MAGIC, 7),
-			this.zeroMeta, "GOGGLES"
+			this.zeroMeta
 		)
 
 		val apparatusStack = new ItemStack(TECBlocks.apparatus)
-		TEC.addTemp(
-			"THAUMICAPPARATUS", new AspectList().add(Aspect.AIR, 1), 2, 0, 0, apparatusStack,
+		ThaumcraftHelper.addResearchData(
+			"THAUMICAPPARATUS", this.category, (List("THAUMICANALYZER"), null),
+			apparatusStack, 2, 0,
+			new AspectList().add(Aspect.AIR, 1), 1,
 			Array[ResearchPage](
 				new ResearchPage("tc.research_page.THAUMICAPPARATUS.1")
 			),
@@ -179,12 +176,13 @@ object TEC extends IMod with IModDetails {
 			),
 			new AspectList().add(Aspect.MIND, 4).add(Aspect.METAL, 2)
 					.add(Aspect.MECHANISM, 10).add(Aspect.MAGIC, 7),
-			TEC.zeroMeta, "THAUMICANALYZER"
+			TEC.zeroMeta
 		)
 
-		TEC.addTemp(
-			"PLAYERTRACKER", new AspectList().add(Aspect.AIR, 1), -1, 2, 0,
-			TECItems.playerTracker,
+		ThaumcraftHelper.addResearchData(
+			"PLAYERTRACKER", this.category, (List("THAUMICANALYZER"), null),
+			TECItems.playerTracker, -1, 2,
+			new AspectList().add(Aspect.AIR, 1), 1,
 			Array[ResearchPage](
 				new ResearchPage("tc.research_page.PLAYERTRACKER.1")
 			),
@@ -194,42 +192,28 @@ object TEC extends IMod with IModDetails {
 					Char.box('t'), "ingotThaumium",
 					Char.box('b'), ConfigItems.itemZombieBrain
 				)
-			), new AspectList(), TEC.zeroMeta, "THAUMICANALYZER"
+			), new AspectList(), TEC.zeroMeta
 		)
 
-		TEC.addTemp(
-			"DECOMPOSER", new AspectList().add(Aspect.AIR, 1), 1, 2, 0,
-			TECItems.decomposer,
+		ThaumcraftHelper.addResearchData(
+			"DECOMPOSER", this.category, (List("THAUMICANALYZER"), null),
+			TECItems.decomposer, 1, 2,
+			new AspectList().add(Aspect.AIR, 1), 0,
 			Array[ResearchPage](
 				new ResearchPage("tc.research_page.DECOMPOSER.1")
 			),
 			Array[IRecipe](
 				new ShapedOreRecipe(TECItems.decomposer,
-					"sss", "sss", "sss",
-					Char.box('s'), Items.stick
+					"igi", "pdt", "igi",
+					Char.box('d'), new ItemStack(ConfigBlocks.blockTable, 1, 14),
+					Char.box('p'), Items.diamond_pickaxe,
+					Char.box('t'), ConfigItems.itemPickThaumium,
+					Char.box('g'), "ingotGold",
+					Char.box('i'), "ingotThaumium"
 				)
-			), new AspectList(), Array[Int](1), "THAUMICANALYZER"
+			), new AspectList(), Array[Int](1)
 		)
 
-	}
-
-	def addTemp(key: String, researchAspects: AspectList, row: Int, col: Int, complexity: Int,
-			objectStack: ItemStack, pages: Array[ResearchPage], recipes: Array[IRecipe],
-			objectAspects: AspectList, possibleMetadata: Array[Int], parent: String): Unit = {
-		ThaumcraftApi.registerObjectTag(objectStack, possibleMetadata, objectAspects)
-
-		val research = new ResearchItem(key, this.category, researchAspects,
-			row, col, complexity, objectStack)
-
-		val allPages: ListBuffer[ResearchPage] = new ListBuffer[ResearchPage]()
-		pages.foreach(allPages.+=)
-		recipes.foreach(recipe => {
-			GameRegistry.addRecipe(recipe)
-			allPages += new ResearchPage(recipe)
-		})
-
-		JavaHelper.setResearchPages(research, allPages.toArray)
-				.setParents(parent).registerResearchItem()
 	}
 
 	// todo save to disk

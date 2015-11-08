@@ -112,7 +112,7 @@ class GuiAnalyzer(c: ContainerAnalyzer) extends GuiContainerBase(c) {
 		if (mouseButton == 0 || mouseButton == 1) {
 			val aspects: Array[Aspect] = this.getTile().getAspects.getAspectsSorted
 			breakable {
-				for (i <- 0 until this.aspectSlots.length) {
+				for (i <- this.aspectSlots.indices) {
 					val index: Int = i + this.getAspectOffset
 					if (index >= 0 && index < aspects.length && aspects(index) != null &&
 							this.isMouseOverArea(mouseX, mouseY, this.aspectSlots(i))) {
@@ -211,7 +211,7 @@ class GuiAnalyzer(c: ContainerAnalyzer) extends GuiContainerBase(c) {
 		if (this.isMouseOverArea(mouseX, mouseY,
 			Array[Int](this.guiLeft + 14, this.guiTop + 11, 14, 42))) {
 			hoverInfo.add("Energy: " + this.getTile().getEnergy +
-					" / " + this.getTile().getMaxEnergy())
+					" / " + this.getTile().getMaxEnergy)
 			hoverInfo.add("Buffer: " + this.getTile().loadingEnergy)
 		}
 	}

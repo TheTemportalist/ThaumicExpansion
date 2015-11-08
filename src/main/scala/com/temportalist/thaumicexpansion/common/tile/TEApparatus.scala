@@ -70,7 +70,7 @@ class TEApparatus extends TileEntity with TraitEnergyReceiver with IPacketCallba
 									.sendToClients()
 						}
 					}
-				case _ => println("no te")
+				case _ =>
 			}
 		}
 
