@@ -87,7 +87,7 @@ class RenderAnalyzer extends TERenderItem(new ResourceLocation(TEC.MODID,
 				GL11.glPushMatrix()
 				GL11.glRotatef(180, 0, 0, 1)
 				GL11.glTranslated(0, -1, 0)
-				new ModelAnalyzer().render(null, 0, 0, 0, 0, 0, f5)
+				model.render(null, 0, 0, 0, 0, 0, f5)
 				GL11.glPopMatrix()
 
 

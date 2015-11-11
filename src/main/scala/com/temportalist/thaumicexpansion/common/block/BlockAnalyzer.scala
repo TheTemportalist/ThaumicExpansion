@@ -1,7 +1,9 @@
 package com.temportalist.thaumicexpansion.common.block
 
+import java.util
+
 import com.temportalist.origin.api.common.block.BlockTile
-import com.temportalist.origin.api.common.lib.V3O
+import com.temportalist.origin.api.common.lib.{BlockState, V3O}
 import com.temportalist.origin.api.common.utility.Stacks
 import com.temportalist.thaumicexpansion.common.TEC
 import com.temportalist.thaumicexpansion.common.tile.TEAnalyzer
@@ -10,6 +12,7 @@ import net.minecraft.entity.EntityLivingBase
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.item.ItemStack
 import net.minecraft.nbt.NBTTagCompound
+import net.minecraft.tileentity.TileEntity
 import net.minecraft.util.MathHelper
 import net.minecraft.world.{IBlockAccess, World}
 import net.minecraftforge.common.util.ForgeDirection
@@ -59,6 +62,9 @@ class BlockAnalyzer(name: String) extends BlockTile(
 		}
 		super.removedByPlayer(world, player, x, y, z, willHarvest)
 	}
+
+	override def getDrops_Pre(world: World, pos: V3O, state: BlockState,
+			tile: TileEntity): util.List[ItemStack] = new util.ArrayList[ItemStack]()
 
 	override def onBlockPlacedBy(world: World, x: Int, y: Int, z: Int, placer: EntityLivingBase,
 			stack: ItemStack): Unit = {
