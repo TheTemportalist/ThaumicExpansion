@@ -5,7 +5,7 @@ import cpw.mods.fml.common.registry.GameRegistry
 import net.minecraft.init.Items
 import net.minecraft.item.ItemStack
 import net.minecraft.nbt.NBTTagCompound
-import net.minecraft.tileentity.TileEntity
+import net.minecraft.tileentity.{TileEntityFurnace, TileEntity}
 
 /**
  *
@@ -50,12 +50,7 @@ trait IEnergable extends TileEntity with IInv {
 	}
 
 	def getFuelEnergy(fuel: ItemStack): Int = {
-		var amt: Int = GameRegistry.getFuelValue(fuel)
-		if (amt == 0) amt = fuel.getItem match {
-			case Items.coal => 1600
-			case _ => 0
-		}
-		amt
+		TileEntityFurnace.getItemBurnTime(fuel)
 	}
 
 	/**
