@@ -5,6 +5,7 @@ import com.temportalist.origin.api.common.lib.{BlockState, V3O}
 import com.temportalist.origin.api.common.utility.Stacks
 import com.temportalist.origin.foundation.common.network.PacketTileCallback
 import com.temportalist.origin.foundation.common.tile.IPacketCallback
+import com.temportalist.origin.internal.common.Origin
 import com.temportalist.thaumicexpansion.api.cofh.TraitEnergyReceiver
 import com.temportalist.thaumicexpansion.api.common.tile.IEnergable
 import cpw.mods.fml.relauncher.Side
@@ -50,24 +51,24 @@ class TEApparatus extends TileEntity with TraitEnergyReceiver with IPacketCallba
 			val amt: Int = Math.min(amountInTicks, maxAmountPerTick)
 			this.connectedCoord.getTile(this.getWorldObj) match {
 				//case tile: TileAlchemyFurnace =>
-					/*
-					val canSmelt: Method = classOf[TileAlchemyFurnace].getDeclaredMethod("canSmelt")
-					canSmelt.setAccessible(true)
-					if (tile.furnaceCookTime > 0 || canSmelt.invoke(tile).asInstanceOf[Boolean]) {
-						//println("invoking")
-						tile.furnaceBurnTime += amt
-						//tile.currentItemBurnTime += 1
-						this.storage.extractEnergy(amt, true)
-					}
-					*/
+				/*
+				val canSmelt: Method = classOf[TileAlchemyFurnace].getDeclaredMethod("canSmelt")
+				canSmelt.setAccessible(true)
+				if (tile.furnaceCookTime > 0 || canSmelt.invoke(tile).asInstanceOf[Boolean]) {
+					//println("invoking")
+					tile.furnaceBurnTime += amt
+					//tile.currentItemBurnTime += 1
+					this.storage.extractEnergy(amt, true)
+				}
+				*/
 				case energable: IEnergable =>
 					if (energable.getEnergy + amt <= energable.getMaxEnergy) {
 						if (energable.addEnergy(amt, doOp = false) > 0) {
 							energable.addEnergy(amt, doOp = true)
 							this.storage.setEnergyStored((this.getEnergy / 10 - amt) * 10)
 							new PacketTileCallback(this).add("EnergyAndThat").add(this.getEnergy).
-									add(new V3O(energable)).add(energable.getEnergy)
-									.sendToClients()
+									add(new V3O(energable)).add(energable.getEnergy).
+									sendToDimension(Origin, this.worldObj.provider.dimensionId)
 						}
 					}
 				case _ =>
@@ -97,7 +98,8 @@ class TEApparatus extends TileEntity with TraitEnergyReceiver with IPacketCallba
 				}
 		if (this.activeSides(dir.ordinal()) != preCheck) {
 			new PacketTileCallback(this).add("SideChange").add(dir.ordinal()).
-					add(this.activeSides(dir.ordinal())).sendToClients()
+					add(this.activeSides(dir.ordinal())).
+					sendToDimension(Origin, this.worldObj.provider.dimensionId)
 		}
 	}
 

@@ -16,6 +16,7 @@ import cpw.mods.fml.common.event.{FMLInitializationEvent, FMLPostInitializationE
 import cpw.mods.fml.common.eventhandler.SubscribeEvent
 import cpw.mods.fml.common.gameevent.PlayerEvent
 import cpw.mods.fml.common.{Mod, SidedProxy}
+import cpw.mods.fml.relauncher.Side
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.init.Items
 import net.minecraft.item.crafting.IRecipe
@@ -90,7 +91,8 @@ object TEC extends IMod with IModDetails {
 	def preInit(event: FMLPreInitializationEvent): Unit = {
 		super.preInitialize(this, event, this.proxy, null, TECBlocks, TECItems)
 
-		this.registerPackets(classOf[PacketGiveAspect])
+		this.registerNetwork()
+		this.registerPacket(classOf[PacketGiveAspect.Handler], classOf[PacketGiveAspect], Side.SERVER)
 
 		RegisterHelper.registerCommand(CommandTEC)
 

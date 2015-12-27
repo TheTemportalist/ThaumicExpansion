@@ -8,12 +8,14 @@ import com.temportalist.origin.api.common.utility.Stacks
 import com.temportalist.origin.foundation.common.network.PacketTileCallback
 import com.temportalist.origin.foundation.common.tile.IPacketCallback
 import com.temportalist.origin.foundation.common.utility.Players
+import com.temportalist.origin.internal.common.Origin
 import com.temportalist.thaumicexpansion.api.common.tile.{IEnergable, IOperation}
 import com.temportalist.thaumicexpansion.common.TEC
 import com.temportalist.thaumicexpansion.common.init.TECItems
 import com.temportalist.thaumicexpansion.common.item.ItemMode
 import com.temportalist.thaumicexpansion.common.lib.ThaumcraftHelper
 import cpw.mods.fml.common.FMLLog
+import cpw.mods.fml.common.network.NetworkRegistry.TargetPoint
 import cpw.mods.fml.relauncher.Side
 import net.minecraft.entity.Entity
 import net.minecraft.entity.item.EntityItem
@@ -414,7 +416,8 @@ with IAspectContainer with IPacketCallback {
 			this.writeNBT_Energy(nbt, "energy")
 			this.aspects.writeToNBT(nbt, "aspects")
 			this.writeNBT_Inv(nbt, "stacks")
-			new PacketTileCallback(this).add("EnergyAspects").add(nbt).sendToClients()
+			new PacketTileCallback(this).add("EnergyAspects").add(nbt).
+					sendToDimension(Origin, this.worldObj.provider.dimensionId)
 		}
 	}
 
@@ -422,7 +425,8 @@ with IAspectContainer with IPacketCallback {
 		if (!this.worldObj.isRemote) {
 			val nbt: NBTTagCompound = new NBTTagCompound
 			this.aspects.writeToNBT(nbt)
-			new PacketTileCallback(this).add("Aspects").add(nbt).sendToClients()
+			new PacketTileCallback(this).add("Aspects").add(nbt).
+					sendToDimension(Origin, this.worldObj.provider.dimensionId)
 		}
 	}
 

@@ -118,7 +118,7 @@ class GuiAnalyzer(c: ContainerAnalyzer) extends GuiContainerBase(c) {
 							this.isMouseOverArea(mouseX, mouseY, this.aspectSlots(i))) {
 						if (this.doesPlayerKnow(Rendering.mc.thePlayer, aspects(index)))
 							new PacketGiveAspect(this.getTile(),
-								index, mouseButton == 0).sendToServer()
+								index, mouseButton == 0).sendToServer(TEC)
 						break()
 					}
 				}
@@ -129,11 +129,11 @@ class GuiAnalyzer(c: ContainerAnalyzer) extends GuiContainerBase(c) {
 	override def actionPerformed(button: GuiButton): Unit = {
 		if (button.id == this.aspectLeft.id) {
 			//packet = new PacketColumnChange(this.getTile(), 1)
-			new PacketTileCallback(this.getTile()).add("ColumnChange").add(true).sendToServer()
+			new PacketTileCallback(this.getTile()).add("ColumnChange").add(true).sendToServer(TEC)
 		}
 		else if (button.id == this.aspectRight.id) {
 			//packet = new PacketColumnChange(this.getTile(), -1)
-			new PacketTileCallback(this.getTile()).add("ColumnChange").add(false).sendToServer()
+			new PacketTileCallback(this.getTile()).add("ColumnChange").add(false).sendToServer(TEC)
 		}
 	}
 
